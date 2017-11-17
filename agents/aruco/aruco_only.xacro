@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+
+<robot name="aruco" xmlns:xacro="http://ros.org/wiki/xacro">
+
+	<!-- Properties -->
+	<xacro:property name="aruco_dict" value="${load_yaml('aruco_only.yaml')}"/>
+	<!-- <xacro:property name="boat_type" value="${aruco_dict['boat_type']}"/> -->
+	<xacro:property name="aruco_num" value="${aruco_dict['aruco_num']}"/>
+	<xacro:property name="namespace" value="aruco_box"/>
+	<xacro:property name="use_mesh_file" value="true"/>
+	<!-- <xacro:property name="mesh_file" value="package://boat_landing/meshes/Boat/${boat_type}_boat.dae"/> -->
+	<!-- <xacro:property name="aruco_mesh_file_1" value="package://boat_landing/meshes/Boat/arucos/aruco${aruco_num}.dae"/> -->
+	<xacro:property name="aruco_mesh_file_1" value="package://ibvs_sim/meshes/aruco_markers/aruco${aruco_num}.dae"/>
+	<!--aruco4 doesn't work for some reason...-->
+	<xacro:property name="box_width" value="1.0"/>
+	<!--+++++++++++++++++++-->
+	<xacro:property name="box_height" value="0.1"/>
+	<!--+++++++++++++++++++-->
+	<xacro:property name="box_inertia">
+		<inertia ixx="16.6" ixy="0.0" ixz="0.0" iyy="16.6" iyz="0.0" izz="16.6"/>
+	</xacro:property>
+
+
+	<!-- Define the aruco link -->
+	<link name="aruco_link_1">
+		<visual>
+		    <origin xyz="0.0 0 0.0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="${aruco_mesh_file_1}" scale="1.0 1.0 1.0"/>
+			</geometry>
+		</visual>
+		<collision>
+				<origin xyz="0 0 0.05" rpy="0 0 0"/>
+			<geometry>
+				<box size="1.0 1.0 0.1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value="${aruco_dict['aruco_mass']}"/>
+			<origin xyz="0 0 0"/>
+			<xacro:insert_block name="box_inertia"/>
+		</inertial>
+	</link>
+
+
+	<gazebo reference="${namespace}/base_link">
+		<material>Gazebo/$(arg color)</material>
+	</gazebo>
+
+
+</robot>
