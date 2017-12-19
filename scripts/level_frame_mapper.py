@@ -6,13 +6,17 @@
 
 import rospy
 from sensor_msgs.msg import Image
+from sensor_msgs.msg import CameraInfo
 from geometry_msgs.msg import PointStamped
+from nav_msgs.msg import Odometry
 from cv_bridge import CvBridge, CvBridgeError
 from aruco_localization.msg import FloatList
 import dynamic_reconfigure.client
 import cv2
 import math
 import numpy as np
+import tf
+import time
 
 
 class LevelFrameMapper(object):
@@ -23,29 +27,49 @@ class LevelFrameMapper(object):
 
         ## initialize other class variables
 
+        # image size
+        self.img_w = 1288
+        self.img_h = 964
+
         # corners
         self.corner_0 = np.zeros(2)
         self.corner_1 = np.zeros(2)
         self.corner_2 = np.zeros(2)
         self.corner_3 = np.zeros(2)
 
+        self.corners = np.zeros((4,1,2))
+        self.uv_bar_lf = np.zeros((4,2))  # pixel coords (u,v) of the corner points in the virtual level frame 
+
+        self.f_row = np.zeros((1,4))
+
+        # self.matrix = np.zeros((2,2), dtype=np.float32)
+
+        # camera params
+        self.K = np.zeros((3,3))
+        self.d = np.zeros(5)
+        self.fx = 0.0
+        self.fy = 0.0
+        self.cx = 0.0
+        self.cy = 0.0
+        self.f = 0.0
+
         # copter attitude roll and pitch
         self.phi = 0.0
         self.theta = 0.0 
 
         # mounting angle offsets
-        self.phi_m = 0.0    # roll relative to the body frame
-        self.theta_m = 0.0  # pitch '...'
-        self.psi_m = 0.0    # yaw '...'
+        phi_m = 0.0    # roll relative to the body frame
+        theta_m = 0.0  # pitch '...'
+        psi_m = 0.0    # yaw '...'
 
         ## define fixed rotations
 
-        sphi_m = np.sin(self.phi_m)
-        cphi_m = np.cos(self.phi_m)
-        stheta_m = np.sin(self.theta_m)
-        ctheta_m = np.cos(self.theta_m)
-        spsi_m = np.sin(self.psi_m)
-        cpsi_m = np.cos(self.psi_m)
+        sphi_m = np.sin(phi_m)
+        cphi_m = np.cos(phi_m)
+        stheta_m = np.sin(theta_m)
+        ctheta_m = np.cos(theta_m)
+        spsi_m = np.sin(psi_m )
+        cpsi_m = np.cos(psi_m )
 
         # rotation from the virtual level frame to the vehicle 1 frame
         self.R_vlc_v1 = np.array([[0., -1., 0.],
@@ -67,13 +91,13 @@ class LevelFrameMapper(object):
         # self.R_v1_b = np.eye(3)
 
         # initialize rotation from camera frame to virtual level frame
-        self.R_c_vlc = np.zeros(3)
+        self.R_c_vlc = np.zeros((3,3))
 
 
-        # initialize CVBridge object
-
-        # initialize subscriber
+        # initialize subscribers
         self.corner_pix_sub = rospy.Subscriber('/aruco/marker_corners', FloatList, self.corners_callback)
+        self.attitude_sub = rospy.Subscriber('/quadcopter/estimate', Odometry, self.attitude_callback)
+        self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
 
 
         # initialize publishers
@@ -85,29 +109,52 @@ class LevelFrameMapper(object):
 
     def corners_callback(self, msg):
 
-        # update corner pixel locations
-        self.corner_0[0] = msg.data[0]  # x pixel
-        self.corner_0[1] = msg.data[1]  # y pixel
+        t = time.time()
+        # populate corners matrix
+        self.corners[0][0][0] = msg.data[0]
+        self.corners[0][0][1] = msg.data[1]
 
-        self.corner_1[0] = msg.data[2]  # x pixel
-        self.corner_1[1] = msg.data[3]  # y pixel
+        self.corners[1][0][0] = msg.data[2]
+        self.corners[1][0][1] = msg.data[3]
 
-        self.corner_2[0] = msg.data[4]  # x pixel
-        self.corner_2[1] = msg.data[5]  # y pixel
+        self.corners[2][0][0] = msg.data[4]
+        self.corners[2][0][1] = msg.data[5]
 
-        self.corner_3[0] = msg.data[6]  # x pixel
-        self.corner_3[1] = msg.data[7]  # y pixel
+        self.corners[3][0][0] = msg.data[6]
+        self.corners[3][0][1] = msg.data[7]
 
-        # TODO undistort the corner locations??
+        # print "Corner Locations:"
+        # print(self.corners)
 
-        # rotate pixel locations into the level frame
+        # undistort the corner locations
+        corners_undist = cv2.undistortPoints(self.corners, self.K, self.d)
 
+        # NOTE at this point we have normalized pixel coordinates
+        # We want to de-normalize but want corner locations wrt image center:
 
+        # corners_undist = np.dot(corners_undist.reshape(4,2), self.matrix)
 
+        # TODO vectorize this instead of corner by corner?? ^implemented above^ maybe it's not actually faster...
 
-    def attitude_callback(self, msg):
+        corners_undist[0][0][0] = corners_undist[0][0][0]*self.fx
+        corners_undist[0][0][1] = corners_undist[0][0][1]*self.fy
 
-        # get the copter's roll/pitch
+        corners_undist[1][0][0] = corners_undist[1][0][0]*self.fx
+        corners_undist[1][0][1] = corners_undist[1][0][1]*self.fy
+
+        corners_undist[2][0][0] = corners_undist[2][0][0]*self.fx
+        corners_undist[2][0][1] = corners_undist[2][0][1]*self.fy
+
+        corners_undist[3][0][0] = corners_undist[3][0][0]*self.fx
+        corners_undist[3][0][1] = corners_undist[3][0][1]*self.fy
+
+        corners_undist = corners_undist.reshape(4,2)
+
+        # now we have a 4x2 matirx of undistorted center-relative corner pixel locations
+        # store in a 3x4 matrix augmented with focal length (for convienience) and save for later
+        uvf = np.concatenate((corners_undist.T, self.f_row), axis=0)    # 3x4
+
+        # setup rotations
 
         # pre-evaluate sines and cosines for rotation matrix
         sphi = np.sin(self.phi)
@@ -126,8 +173,86 @@ class LevelFrameMapper(object):
         R_v1_b = np.dot(R_v2_b, R_v1_v2)
 
         # compute the whole rotation from camera frame to the virtual level frame
-        # R_c_vlc = R_vlc_c.T
-        self.R_c_vlc = self.R_m_c.dot(self.R_b_m.dot(R_v1_b.dot(self.R_vlc_v1))).T
+        self.R_c_vlc = self.R_m_c.dot(self.R_b_m.dot(R_v1_b.dot(self.R_vlc_v1))).T    # R_c_vlc = R_vlc_c.T
+
+        # pass pixel locations through the rotation same way it's done in eq(14)
+        
+        # first, get the terms of eq(14)
+
+        # this is how you'd do it one pixel (u, v) at a time:  
+        # hom = np.dot(self.R_c_vlc, np.array([[corners_undist[0][0]],[corners_undist[0][1]],[self.f]]))  # this is a homography?? 3x1
+        # x_term = hom[0][0]
+        # y_term = hom[1][0]
+        # denom = hom[2][0]
+
+        # u_bar = self.f * (x_term/denom)
+        # v_bar = self.f * (y_term/denom)
+
+        # we'll do it all four corners at the same time:
+        hom = np.dot(self.R_c_vlc, uvf) # 3x4
+        
+        # populate the matrix of (u,v) pixel coordinates in the virtual-level-frame
+        self.uv_bar_lf[0][0] = self.f * (hom[0][0]/hom[2][0])   # u1
+        self.uv_bar_lf[0][1] = self.f * (hom[1][0]/hom[2][0])   # v1
+
+        self.uv_bar_lf[1][0] = self.f * (hom[0][1]/hom[2][1])   # u2
+        self.uv_bar_lf[1][1] = self.f * (hom[1][1]/hom[2][1])   # v2
+
+        self.uv_bar_lf[2][0] = self.f * (hom[0][2]/hom[2][2])   # u3
+        self.uv_bar_lf[2][1] = self.f * (hom[1][2]/hom[2][2])   # v3
+
+        self.uv_bar_lf[3][0] = self.f * (hom[0][3]/hom[2][3])   # u4
+        self.uv_bar_lf[3][1] = self.f * (hom[1][3]/hom[2][3])   # v4
+
+        # print "data:"
+        # print "uv_bar_lf: "
+        # print(self.uv_bar_lf)
+        # print "\n"
+
+        # print "uv_bar_cam: "
+        # print(corners_undist)
+        # print "\n"
+
+
+    def attitude_callback(self, msg):
+
+        # get the quaternion orientation from the message
+        quaternion = (
+            msg.pose.pose.orientation.x,
+            msg.pose.pose.orientation.y,
+            msg.pose.pose.orientation.z,
+            msg.pose.pose.orientation.w)
+
+        # convert to euler angles 
+        euler = tf.transformations.euler_from_quaternion(quaternion)
+
+        # update class variables
+        self.phi = euler[0]
+        self.theta = euler[1]
+
+
+    def camera_info_callback(self, msg):
+
+        # get the Camera Matrix K and distortion params d
+        self.K = np.array(msg.K, dtype=np.float32).reshape((3,3))
+        self.d = np.array(msg.D, dtype=np.float32)
+
+        self.fx = self.K[0][0]
+        self.fy = self.K[1][1]
+        self.cx = self.K[0][2]
+        self.cy = self.K[1][2]
+
+        self.f = (self.fx + self.fy) / 2.0
+
+        self.f_row[0][:] = self.f
+
+        # self.matrix[0][0] = self.fx
+        # self.matrix[1][1] = self.fy
+
+        # just get this data once
+        self.camera_info_sub.unregister()
+        print("Level_frame_mapper: Got camera info!")
+
 
 
 
