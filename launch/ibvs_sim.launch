@@ -79,10 +79,16 @@
       <param name="time_window" value="10.0"/>
     </node>
 
-    <!-- level-frame mapper -->
-    <node pkg="ibvs_sim" type="level_frame_mapper.py" name="level_frame_mapper" output="screen" />
-
   </group>
+
+
+  <!-- IBVS_SIM-->
+  <!-- level-frame mapper -->
+  <node pkg="ibvs_sim" type="level_frame_mapper.py" name="level_frame_mapper" output="screen" />
+
+  <!-- IBVS -->
+  <node pkg="ibvs_sim" type="ibvs.py" name="ibvs" output="screen" />
+
 
   <!-- ArUco Localization -->
   <node pkg="aruco_localization" type="aruco_localization" name="aruco" output="screen">
