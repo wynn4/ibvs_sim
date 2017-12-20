@@ -23,15 +23,11 @@ class LevelFrameMapper(object):
         ## initialize other class variables
 
         # image size
+        # TODO get these params automatically
         self.img_w = 1288
         self.img_h = 964
-
-        # corners
-        self.corner_0 = np.zeros(2)
-        self.corner_1 = np.zeros(2)
-        self.corner_2 = np.zeros(2)
-        self.corner_3 = np.zeros(2)
-
+        
+        # matrices to hold corner data
         self.corners = np.zeros((4,1,2))
         self.uv_bar_lf = np.zeros((4,2))  # pixel coords (u,v) of the corner points in the virtual level frame 
 
@@ -93,7 +89,7 @@ class LevelFrameMapper(object):
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
 
         # initialize publishers
-        self.uv_bar_pub = rospy.Publisher('/uv_bar', FloatList, queue_size=1)
+        self.uv_bar_pub = rospy.Publisher('/ibvs/uv_bar_lf', FloatList, queue_size=1)
         self.uv_bar_msg = FloatList()
 
 
@@ -213,7 +209,7 @@ class LevelFrameMapper(object):
         # hz_approx = 1.0/elapsed
         # print(hz_approx)
 
-        
+
     def attitude_callback(self, msg):
 
         # get the quaternion orientation from the message
@@ -252,7 +248,6 @@ class LevelFrameMapper(object):
         # just get this data once
         self.camera_info_sub.unregister()
         print("Level_frame_mapper: Got camera info!")
-
 
 
 
