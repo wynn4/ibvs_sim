@@ -5,16 +5,11 @@
 ## JSW Nov 2017
 
 import rospy
-from sensor_msgs.msg import Image
 from sensor_msgs.msg import CameraInfo
-from geometry_msgs.msg import PointStamped
 from nav_msgs.msg import Odometry
-from cv_bridge import CvBridge, CvBridgeError
 from aruco_localization.msg import FloatList
-import dynamic_reconfigure.client
-import cv2
-import math
 import numpy as np
+import cv2
 import tf
 import time
 
@@ -63,7 +58,6 @@ class LevelFrameMapper(object):
         psi_m = 0.0    # yaw '...'
 
         ## define fixed rotations
-
         sphi_m = np.sin(phi_m)
         cphi_m = np.cos(phi_m)
         stheta_m = np.sin(theta_m)
@@ -93,23 +87,20 @@ class LevelFrameMapper(object):
         # initialize rotation from camera frame to virtual level frame
         self.R_c_vlc = np.zeros((3,3))
 
-
         # initialize subscribers
         self.corner_pix_sub = rospy.Subscriber('/aruco/marker_corners', FloatList, self.corners_callback)
         self.attitude_sub = rospy.Subscriber('/quadcopter/estimate', Odometry, self.attitude_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
 
-
         # initialize publishers
-
-        # initialize timer
-        # self.exposure_update_rate = 1.0
-        # self.update_timer = rospy.Timer(rospy.Duration(1.0/self.exposure_update_rate), self.process_image)
+        self.uv_bar_pub = rospy.Publisher('/uv_bar', FloatList, queue_size=1)
+        self.uv_bar_msg = FloatList()
 
 
     def corners_callback(self, msg):
 
-        t = time.time()
+        # t = time.time()
+
         # populate corners matrix
         self.corners[0][0][0] = msg.data[0]
         self.corners[0][0][1] = msg.data[1]
@@ -123,18 +114,13 @@ class LevelFrameMapper(object):
         self.corners[3][0][0] = msg.data[6]
         self.corners[3][0][1] = msg.data[7]
 
-        # print "Corner Locations:"
-        # print(self.corners)
-
         # undistort the corner locations
         corners_undist = cv2.undistortPoints(self.corners, self.K, self.d)
 
         # NOTE at this point we have normalized pixel coordinates
-        # We want to de-normalize but want corner locations wrt image center:
+        # We want to de-normalize (multiply by focal length) but still want corner locations wrt image center
 
-        # corners_undist = np.dot(corners_undist.reshape(4,2), self.matrix)
-
-        # TODO vectorize this instead of corner by corner?? ^implemented above^ maybe it's not actually faster...
+        # TODO vectorize this instead of corner by corner?? implemented below on 145 maybe it's not actually faster...
 
         corners_undist[0][0][0] = corners_undist[0][0][0]*self.fx
         corners_undist[0][0][1] = corners_undist[0][0][1]*self.fy
@@ -147,6 +133,8 @@ class LevelFrameMapper(object):
 
         corners_undist[3][0][0] = corners_undist[3][0][0]*self.fx
         corners_undist[3][0][1] = corners_undist[3][0][1]*self.fy
+
+        # corners_undist = np.dot(corners_undist.reshape(4,2), self.matrix)
 
         corners_undist = corners_undist.reshape(4,2)
 
@@ -213,7 +201,19 @@ class LevelFrameMapper(object):
         # print(corners_undist)
         # print "\n"
 
+        # fill out the FloatList message
+        self.uv_bar_msg.header.frame_id = 'level-frame_corners'
+        self.uv_bar_msg.header.stamp = msg.header.stamp # same as the incoming message
+        self.uv_bar_msg.data = self.uv_bar_lf.flatten().tolist()  # flatten and convert to list type
 
+        # publish
+        self.uv_bar_pub.publish(self.uv_bar_msg)
+
+        # elapsed = time.time() - t
+        # hz_approx = 1.0/elapsed
+        # print(hz_approx)
+
+        
     def attitude_callback(self, msg):
 
         # get the quaternion orientation from the message
