@@ -35,14 +35,14 @@ class ImageBasedVisualServoing(object):
         self.fy = 0.0
         self.cx = 0.0
         self.cy = 0.0
-        self.f = 0.0
+        self.f = 1000.0  # initialize to ge greater than zero
 
         # copter attitude roll and pitch
         self.phi = 0.0
         self.theta = 0.0
 
         # distance (height) to the ArUco
-        self.z_c = 0.0
+        self.z_c = 10.0  # initialize to be greater than zero
 
         # rotation from the virtual level frame to the vehicle 1 frame
         self.R_vlc_v1 = np.array([[0., -1., 0.],
@@ -91,6 +91,10 @@ class ImageBasedVisualServoing(object):
 
         # stack the Jacobians
         Jp = np.vstack((Jp1, Jp2, Jp3, Jp4))  # 8x6
+
+        # elapsed = time.time() - t
+        # hz_approx = 1.0/elapsed
+        # print(hz_approx)
 
         
     def attitude_callback(self, msg):
