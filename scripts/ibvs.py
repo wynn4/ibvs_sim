@@ -37,12 +37,23 @@ class ImageBasedVisualServoing(object):
         self.cy = 0.0
         self.f = 1000.0  # initialize to ge greater than zero
 
+        # pixel size in micrometers
+        pixel_um = 3.75
+        pixel_size = pixel_um * 1e-6  # pixel size in meters
+
         # copter attitude roll and pitch
         self.phi = 0.0
         self.theta = 0.0
 
         # distance (height) to the ArUco
         self.z_c = 10.0  # initialize to be greater than zero
+
+        # positive definite weighting matrix W
+        self.W = pixel_size * np.diag([1., 1., 1., 1., 1., 1.])
+
+        # desired pixel coords 
+        # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
+        self.p_des = np.array([-300, -300, 300, -300, 300, 300, -300, 300], dtype=np.float32).reshape(8,1)
 
         # rotation from the virtual level frame to the vehicle 1 frame
         self.R_vlc_v1 = np.array([[0., -1., 0.],
@@ -91,6 +102,23 @@ class ImageBasedVisualServoing(object):
 
         # stack the Jacobians
         Jp = np.vstack((Jp1, Jp2, Jp3, Jp4))  # 8x6
+
+        # formulate the error term e = p - p_des
+        p = np.array([u1, v1, u2, v2, u3, v3, u4, v4]).reshape(8,1)
+        e = p - self.p_des
+
+        # formulate the desired camera velocity vector rdot_des from eq(10)
+        # rdot_des = -self.W * Jp.T * e
+        rdot_des = - self.W.dot(Jp.T).dot(e)
+
+        # for now we'll just use the translational components (first three rows) of rdot_des
+        rdot_des = rdot_des[:3][:]
+
+        # rotate rdot_des from the virtual level camera frame into the vehicle 1 frame
+        v_des_v1 = np.dot(self.R_vlc_v1, rdot_des)
+        # print "v_des_v1: "
+        # print(v_des_v1)
+        # print "\n"
 
         # elapsed = time.time() - t
         # hz_approx = 1.0/elapsed
