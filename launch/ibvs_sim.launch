@@ -8,8 +8,8 @@
   <arg name="yaw"                 default="0"/>
 
   <arg name="aruco_name"          default="aruco_marker"/>
-  <arg name="x2"                  default="0"/>
-  <arg name="y2"                  default="0"/>
+  <arg name="x2"                  default="10"/>
+  <arg name="y2"                  default="-10"/>
   <arg name="z2"                  default="0"/>
 
   <arg name="debug"               default="false"/>
@@ -68,7 +68,7 @@
     </node>
 
     <!-- Waypoint Manager -->
-    <node name="waypoint_manager" pkg="roscopter" type="waypoint_manager.py" output="screen">
+    <node name="waypoint_manager" pkg="ibvs_sim" type="ibvs_waypoint_manager.py" output="screen">
       <remap from="waypoint" to="high_level_command"/>
       <!-- <remap from="state" to="ground_truth/odometry/NED"/> -->
       <remap from="state" to="estimate"/>

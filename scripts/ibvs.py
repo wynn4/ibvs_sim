@@ -9,6 +9,7 @@ from sensor_msgs.msg import CameraInfo
 from nav_msgs.msg import Odometry
 from aruco_localization.msg import FloatList
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Twist
 import numpy as np
 import cv2
 import tf
@@ -37,9 +38,13 @@ class ImageBasedVisualServoing(object):
         self.cy = 0.0
         self.f = 1000.0  # initialize to ge greater than zero
 
-        # pixel size in micrometers
-        pixel_um = 3.75
+        pixel_um = 3.75  # pixel size in micrometers
         pixel_size = pixel_um * 1e-6  # pixel size in meters
+
+        # visualization params
+        self.show = True
+        shape = (self.img_h, self.img_w, 3)
+        self.level_frame = np.zeros(shape, np.uint8)
 
         # copter attitude roll and pitch
         self.phi = 0.0
@@ -49,11 +54,11 @@ class ImageBasedVisualServoing(object):
         self.z_c = 10.0  # initialize to be greater than zero
 
         # positive definite weighting matrix W
-        self.W = pixel_size * np.diag([1., 1., 1., 1., 1., 1.])
+        self.W = pixel_size * np.diag([0.1, 0.1, 1., 1., 1., 1.])
 
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
-        self.p_des = np.array([-300, -300, 300, -300, 300, 300, -300, 300], dtype=np.float32).reshape(8,1)
+        self.p_des = np.array([-250, -250, 250, -250, 250, 250, -250, 250], dtype=np.float32).reshape(8,1)
 
         # rotation from the virtual level frame to the vehicle 1 frame
         self.R_vlc_v1 = np.array([[0., -1., 0.],
@@ -66,6 +71,9 @@ class ImageBasedVisualServoing(object):
         # initialize rotation from virtual level frame to body frame
         self.R_vlc_b = np.zeros((3,3))
 
+        # initialize velocity command
+        self.vel_cmd_msg = Twist()
+
         # initialize subscribers
         self.uv_bar_sub = rospy.Subscriber('/ibvs/uv_bar_lf', FloatList, self.level_frame_corners_callback)
         self.aruco_sub = rospy.Subscriber('/aruco/estimate', PoseStamped, self.aruco_callback)
@@ -73,6 +81,7 @@ class ImageBasedVisualServoing(object):
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
 
         # initialize publishers
+        self.vel_cmd_pub = rospy.Publisher('/ibvs/vel_cmd', Twist, queue_size=1)
 
 
     def level_frame_corners_callback(self, msg):
@@ -111,14 +120,51 @@ class ImageBasedVisualServoing(object):
         # rdot_des = -self.W * Jp.T * e
         rdot_des = - self.W.dot(Jp.T).dot(e)
 
-        # for now we'll just use the translational components (first three rows) of rdot_des
-        rdot_des = rdot_des[:3][:]
+        # break rdot_des into its linear and angular components
+        rdot_des_linear = rdot_des[:3][:]  # 3x1 [vx, vy, vz].T
+        rdot_des_angular = rdot_des[3:][:]  # 3x1 [wx, wy, wz].T
 
         # rotate rdot_des from the virtual level camera frame into the vehicle 1 frame
-        v_des_v1 = np.dot(self.R_vlc_v1, rdot_des)
-        # print "v_des_v1: "
-        # print(v_des_v1)
-        # print "\n"
+        # TODO maybe we should rotate all the way into the body frame???
+        v_des_v1_linear = np.dot(self.R_vlc_v1, rdot_des_linear)  # 3x1
+        v_des_v1_angular = np.dot(self.R_vlc_v1, rdot_des_angular)  # 3x1
+        
+        # fill out the velocity command message
+        self.vel_cmd_msg.linear.x = v_des_v1_linear[0][0]
+        self.vel_cmd_msg.linear.y = v_des_v1_linear[1][0]
+        self.vel_cmd_msg.linear.z = v_des_v1_linear[2][0]
+
+        self.vel_cmd_msg.angular.x = v_des_v1_angular[0][0]
+        self.vel_cmd_msg.angular.y = v_des_v1_angular[1][0]
+        self.vel_cmd_msg.angular.z = v_des_v1_angular[2][0]
+
+        # publish
+        self.vel_cmd_pub.publish(self.vel_cmd_msg)
+
+        if self.show:
+
+            # clear out the frame
+            self.level_frame.fill(0)
+
+            # draw the level-frame pixel coordinates and desired coordinates
+            cv2.circle(self.level_frame, (int(u1+self.img_w/2.0), int(v1+self.img_h/2.0)), 10, (0, 0, 255))
+            cv2.circle(self.level_frame, (int(u2+self.img_w/2.0), int(v2+self.img_h/2.0)), 10, (0, 0, 255))
+            cv2.circle(self.level_frame, (int(u3+self.img_w/2.0), int(v3+self.img_h/2.0)), 10, (0, 0, 255))
+            cv2.circle(self.level_frame, (int(u4+self.img_w/2.0), int(v4+self.img_h/2.0)), 10, (0, 0, 255))
+
+            cv2.circle(self.level_frame, (int(self.p_des[0][0]+self.img_w/2.0), int(self.p_des[1][0]+self.img_h/2.0)), 10, (0, 255, 0))
+            cv2.circle(self.level_frame, (int(self.p_des[2][0]+self.img_w/2.0), int(self.p_des[3][0]+self.img_h/2.0)), 10, (0, 255, 0))
+            cv2.circle(self.level_frame, (int(self.p_des[4][0]+self.img_w/2.0), int(self.p_des[5][0]+self.img_h/2.0)), 10, (0, 255, 0))
+            cv2.circle(self.level_frame, (int(self.p_des[6][0]+self.img_w/2.0), int(self.p_des[7][0]+self.img_h/2.0)), 10, (0, 255, 0))
+
+            cv2.line(self.level_frame, (int(u1+self.img_w/2.0), int(v1+self.img_h/2.0)), (int(self.p_des[0][0]+self.img_w/2.0), int(self.p_des[1][0]+self.img_h/2.0)), (255, 0, 0))
+            cv2.line(self.level_frame, (int(u2+self.img_w/2.0), int(v2+self.img_h/2.0)), (int(self.p_des[2][0]+self.img_w/2.0), int(self.p_des[3][0]+self.img_h/2.0)), (255, 0, 0))
+            cv2.line(self.level_frame, (int(u3+self.img_w/2.0), int(v3+self.img_h/2.0)), (int(self.p_des[4][0]+self.img_w/2.0), int(self.p_des[5][0]+self.img_h/2.0)), (255, 0, 0))
+            cv2.line(self.level_frame, (int(u4+self.img_w/2.0), int(v4+self.img_h/2.0)), (int(self.p_des[6][0]+self.img_w/2.0), int(self.p_des[7][0]+self.img_h/2.0)), (255, 0, 0))
+
+            # display the image
+            cv2.imshow("level_frame_image", self.level_frame)
+            cv2.waitKey(1)
 
         # elapsed = time.time() - t
         # hz_approx = 1.0/elapsed
@@ -182,7 +228,8 @@ def main():
         print("Shutting down")
 
     # OpenCV cleanup
-    # cv2.destroyAllWindows()
+    if ibvs.show:
+        cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main()
