@@ -31,7 +31,7 @@ class WaypointManager():
         self.ibvs_time = rospy.get_time()
         self.ibvs_active = False
 
-        self.descend_slowly = -10.0  # start at 5 meters above ground
+        self.descend_slowly = -15.0  # start at 5 meters above ground
 
         self.descend_timer = rospy.Timer(rospy.Duration(1.0), self.descend_callback)
 
