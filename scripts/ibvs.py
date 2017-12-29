@@ -41,10 +41,10 @@ class ImageBasedVisualServoing(object):
         pixel_um = 3.75  # pixel size in micrometers
         pixel_size = pixel_um * 1e-6  # pixel size in meters
 
-        # visualization params
-        self.show = True
-        shape = (self.img_h, self.img_w, 3)
-        self.level_frame = np.zeros(shape, np.uint8)
+        # # visualization params
+        # self.show = True
+        # shape = (self.img_h, self.img_w, 3)
+        # self.level_frame = np.zeros(shape, np.uint8)
 
         # copter attitude roll and pitch
         self.phi = 0.0
@@ -58,7 +58,7 @@ class ImageBasedVisualServoing(object):
 
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
-        self.p_des = np.array([-250, -250, 250, -250, 250, 250, -250, 250], dtype=np.float32).reshape(8,1)
+        self.p_des = np.array([-200, -200, 200, -200, 200, 200, -200, 200], dtype=np.float32).reshape(8,1)
 
         # rotation from the virtual level frame to the vehicle 1 frame
         self.R_vlc_v1 = np.array([[0., -1., 0.],
@@ -141,30 +141,30 @@ class ImageBasedVisualServoing(object):
         # publish
         self.vel_cmd_pub.publish(self.vel_cmd_msg)
 
-        if self.show:
+        # if self.show:
 
-            # clear out the frame
-            self.level_frame.fill(0)
+        #     # clear out the frame
+        #     self.level_frame.fill(0)
 
-            # draw the level-frame pixel coordinates and desired coordinates
-            cv2.circle(self.level_frame, (int(u1+self.img_w/2.0), int(v1+self.img_h/2.0)), 10, (0, 0, 255))
-            cv2.circle(self.level_frame, (int(u2+self.img_w/2.0), int(v2+self.img_h/2.0)), 10, (0, 0, 255))
-            cv2.circle(self.level_frame, (int(u3+self.img_w/2.0), int(v3+self.img_h/2.0)), 10, (0, 0, 255))
-            cv2.circle(self.level_frame, (int(u4+self.img_w/2.0), int(v4+self.img_h/2.0)), 10, (0, 0, 255))
+        #     # draw the level-frame pixel coordinates and desired coordinates
+        #     cv2.circle(self.level_frame, (int(u1+self.img_w/2.0), int(v1+self.img_h/2.0)), 10, (0, 0, 255))
+        #     cv2.circle(self.level_frame, (int(u2+self.img_w/2.0), int(v2+self.img_h/2.0)), 10, (0, 0, 255))
+        #     cv2.circle(self.level_frame, (int(u3+self.img_w/2.0), int(v3+self.img_h/2.0)), 10, (0, 0, 255))
+        #     cv2.circle(self.level_frame, (int(u4+self.img_w/2.0), int(v4+self.img_h/2.0)), 10, (0, 0, 255))
 
-            cv2.circle(self.level_frame, (int(self.p_des[0][0]+self.img_w/2.0), int(self.p_des[1][0]+self.img_h/2.0)), 10, (0, 255, 0))
-            cv2.circle(self.level_frame, (int(self.p_des[2][0]+self.img_w/2.0), int(self.p_des[3][0]+self.img_h/2.0)), 10, (0, 255, 0))
-            cv2.circle(self.level_frame, (int(self.p_des[4][0]+self.img_w/2.0), int(self.p_des[5][0]+self.img_h/2.0)), 10, (0, 255, 0))
-            cv2.circle(self.level_frame, (int(self.p_des[6][0]+self.img_w/2.0), int(self.p_des[7][0]+self.img_h/2.0)), 10, (0, 255, 0))
+        #     cv2.circle(self.level_frame, (int(self.p_des[0][0]+self.img_w/2.0), int(self.p_des[1][0]+self.img_h/2.0)), 10, (0, 255, 0))
+        #     cv2.circle(self.level_frame, (int(self.p_des[2][0]+self.img_w/2.0), int(self.p_des[3][0]+self.img_h/2.0)), 10, (0, 255, 0))
+        #     cv2.circle(self.level_frame, (int(self.p_des[4][0]+self.img_w/2.0), int(self.p_des[5][0]+self.img_h/2.0)), 10, (0, 255, 0))
+        #     cv2.circle(self.level_frame, (int(self.p_des[6][0]+self.img_w/2.0), int(self.p_des[7][0]+self.img_h/2.0)), 10, (0, 255, 0))
 
-            cv2.line(self.level_frame, (int(u1+self.img_w/2.0), int(v1+self.img_h/2.0)), (int(self.p_des[0][0]+self.img_w/2.0), int(self.p_des[1][0]+self.img_h/2.0)), (255, 0, 0))
-            cv2.line(self.level_frame, (int(u2+self.img_w/2.0), int(v2+self.img_h/2.0)), (int(self.p_des[2][0]+self.img_w/2.0), int(self.p_des[3][0]+self.img_h/2.0)), (255, 0, 0))
-            cv2.line(self.level_frame, (int(u3+self.img_w/2.0), int(v3+self.img_h/2.0)), (int(self.p_des[4][0]+self.img_w/2.0), int(self.p_des[5][0]+self.img_h/2.0)), (255, 0, 0))
-            cv2.line(self.level_frame, (int(u4+self.img_w/2.0), int(v4+self.img_h/2.0)), (int(self.p_des[6][0]+self.img_w/2.0), int(self.p_des[7][0]+self.img_h/2.0)), (255, 0, 0))
+        #     cv2.line(self.level_frame, (int(u1+self.img_w/2.0), int(v1+self.img_h/2.0)), (int(self.p_des[0][0]+self.img_w/2.0), int(self.p_des[1][0]+self.img_h/2.0)), (255, 0, 0))
+        #     cv2.line(self.level_frame, (int(u2+self.img_w/2.0), int(v2+self.img_h/2.0)), (int(self.p_des[2][0]+self.img_w/2.0), int(self.p_des[3][0]+self.img_h/2.0)), (255, 0, 0))
+        #     cv2.line(self.level_frame, (int(u3+self.img_w/2.0), int(v3+self.img_h/2.0)), (int(self.p_des[4][0]+self.img_w/2.0), int(self.p_des[5][0]+self.img_h/2.0)), (255, 0, 0))
+        #     cv2.line(self.level_frame, (int(u4+self.img_w/2.0), int(v4+self.img_h/2.0)), (int(self.p_des[6][0]+self.img_w/2.0), int(self.p_des[7][0]+self.img_h/2.0)), (255, 0, 0))
 
-            # display the image
-            cv2.imshow("level_frame_image", self.level_frame)
-            cv2.waitKey(1)
+        #     # display the image
+        #     cv2.imshow("level_frame_image", self.level_frame)
+        #     cv2.waitKey(1)
 
         # elapsed = time.time() - t
         # hz_approx = 1.0/elapsed
@@ -228,8 +228,8 @@ def main():
         print("Shutting down")
 
     # OpenCV cleanup
-    if ibvs.show:
-        cv2.destroyAllWindows()
+    # if ibvs.show:
+    #     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main()
