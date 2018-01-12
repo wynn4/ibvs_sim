@@ -84,7 +84,9 @@
 
   <!-- IBVS_SIM-->
   <!-- level-frame mapper -->
-  <node pkg="ibvs_sim" type="level_frame_mapper.py" name="level_frame_mapper" output="screen" />
+  <node pkg="ibvs_sim" type="level_frame_mapper.py" name="level_frame_mapper" output="screen">
+    <!-- <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/> -->
+  </node>
 
   <!-- IBVS -->
   <node pkg="ibvs_sim" type="ibvs.py" name="ibvs" output="screen" />
