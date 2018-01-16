@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Python implementation of rosflight_utils SimplePID class
 
-import rospy
 from math import *
 import numpy as np
 
@@ -92,15 +91,3 @@ class PID:
 		self.integrator_ = 0.0
 
 
-##############################
-#### Main Function to Run ####
-##############################
-if __name__ == '__main__':
-
-	# Initialize Node
-	rospy.init_node('simple_pid')
-
-	# init path_follower object
-	pid_controller = PID()
-
-	rospy.spin()
