@@ -13,8 +13,8 @@ from geometry_msgs.msg import Pose
 from simple_pid import PID
 import tf
 
-## TODO: -finish initializing PID controllers in __init__
-##       -add loading of applicable ros params in __init__
+## TODO: -finish initializing PID controllers in __init__  --done Jan 17
+##       -add loading of applicable ros params in __init__ --done Jan 17
 ##       -finish compute_control function
 ##       -finish saturate function
 ##       -test it out and debug
@@ -26,6 +26,43 @@ class Controller(object):
     def __init__(self):
 
         # load ROS params
+
+        # PID gains
+        u_P = rospy.get_param('u_P', 0.2)
+        u_I = rospy.get_param('u_I', 0.0)
+        u_D = rospy.get_param('u_D', 0.01)
+
+        v_P = rospy.get_param('v_P', 0.2)
+        v_I = rospy.get_param('v_I', 0.0)
+        v_D = rospy.get_param('v_D', 0.01)
+
+        w_P = rospy.get_param('w_P', 3.0)
+        w_I = rospy.get_param('w_I', 0.05)
+        w_D = rospy.get_param('w_D', 0.5)
+
+        x_P = rospy.get_param('x_P', 0.5)
+        x_I = rospy.get_param('x_I', 0.01)
+        x_D = rospy.get_param('x_D', 0.1)
+
+        y_P = rospy.get_param('y_P', 0.5)
+        y_I = rospy.get_param('y_I', 0.01)
+        y_D = rospy.get_param('y_D', 0.1)
+
+        z_P = rospy.get_param('z_P', 1.0)
+        z_I = rospy.get_param('z_I', 0.1)
+        z_D = rospy.get_param('z_D', 0.4)
+
+        psi_P = rospy.get_param('psi_P', 0.5)
+        psi_I = rospy.get_param('psi_I', 0.0)
+        psi_D = rospy.get_param('psi_D', 0.0)
+
+        tau = rospy.get_param('tau', 0.04)
+
+        # quadcopter params
+        self.max_thrust = rospy.get_param('max_F', 60.0)
+        self.mass = rospy.get_param('mass', 3.0)
+        self.thrust_eq = (9.80665 * self.mass) / self.max_thrust
+        self.drag_constant = rospy.get_param('linear_mu', 0.1)
 
         # initialize state variables
         self.pn = 0.0
@@ -76,13 +113,13 @@ class Controller(object):
         self.max_w = rospy.get_param('max_x', 1.0)
 
         # initialize PID controllers
-        self.PID_u = PID()
-        self.PID_v = PID()
-        self.PID_w = PID()
-        self.PID_x = PID()
-        self.PID_y = PID()
-        self.PID_z = PID()
-        self.PID_psi = PID()
+        self.PID_u = PID(u_P, u_I, u_D, None, None, tau)
+        self.PID_v = PID(v_P, v_I, v_D, None, None, tau)
+        self.PID_w = PID(w_P, w_I, w_D, None, None, tau)
+        self.PID_x = PID(x_P, x_I, x_D, None, None, tau)
+        self.PID_y = PID(y_P, y_I, y_D, None, None, tau)
+        self.PID_z = PID(z_P, z_I, z_D, None, None, tau)
+        self.PID_psi = PID(psi_P, psi_I, psi_D, None, None, tau)
 
         # initialize other class variables
         self.prev_time = 0.0
@@ -275,7 +312,17 @@ class Controller(object):
 
         if mode_flag == Command.MODE_XVEL_YVEL_YAWRATE_ALTITUDE:
 
-            # stuff
+            max_ax = np.sin(np.arccos(self.thrust_eq))
+            max_ay = np.sin(np.arccos(self.thrust_eq))
+            self.xc_ax = self.saturate(self.PID_u.computePID(self.xc_u, self.u, dt) + self.drag_constant*self.u / (9.80665 * self.mass), self.max_ax, -self.max_ax)
+            self.xc_ay = self.saturate(self.PID_v.computePID(self.xc_v, self.v, dt) + self.drag_constant*self.v / (9.80665 * self.mass), self.max_ay, -self.max_ay)
+
+            # nested loop for altitude
+            pddot = -np.sin(self.theta) * self.u + np.sin(self.phi)*np.cos(self.theta)*self.v + np.cos(self.phi)*np.cos(self.theta)*self.w
+            pddot_c = self.saturate(self.PID_w.computePID(self.xc_pd, self.pd, dt, pddot), self.max_w, -self.max_w)
+            self.xc_az = self.PID_z.computePID(pddot_c, pddot, dt)
+            # print statement if you want
+            mode_flag = Command.MODE_XACC_YACC_YAWRATE_AZ
 
         if mode_flag == Command.MODE_XACC_YACC_YAWRATE_AZ:
 
@@ -283,7 +330,12 @@ class Controller(object):
 
         if mode_flag == Command.MODE_ROLL_PITCH_YAWRATE_THROTTLE:
 
-            # stuff
+            # Model inversion (m[ax;ay;az] = m[0;0;g] + R'[0;0;-T]
+            # This model tends to pop the MAV up in the air when a large change
+            # in control is commanded as the MAV rotates to it's commanded attitude while also ramping up throttle.
+            # It works quite well, but it is a little oversimplified.
+
+            
 
 
         
