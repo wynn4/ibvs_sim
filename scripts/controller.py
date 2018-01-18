@@ -12,7 +12,7 @@ from rosflight_msgs.msg import Command
 from geometry_msgs.msg import Pose
 from simple_pid import PID
 import tf
-import time
+# import time
 
 ## TODO: -finish initializing PID controllers in __init__  --done Jan 17
 ##       -add loading of applicable ros params in __init__ --done Jan 17
@@ -131,6 +131,7 @@ class Controller(object):
         self.prev_time = 0.0
         self.is_flying = False
         self.control_mode = 4  # MODE_XPOS_YPOS_YAW_ALTITUDE
+        self.ibvs_active = False
 
         self.command = Command()
 
@@ -142,6 +143,7 @@ class Controller(object):
         self.state_sub = rospy.Subscriber('estimate', Odometry, self.state_callback)
         self.is_flying_sub = rospy.Subscriber('is_flying', Bool, self.is_flying_callback)
         self.cmd_sub = rospy.Subscriber('high_level_command', Command, self.cmd_callback)
+        self.ibvs_active_sub = rospy.Subscriber('ibvs_active', Bool, self.ibvs_active_callback)
 
         # initialize publishers
         self.command_pub = rospy.Publisher('command', Command, queue_size=10)
@@ -210,6 +212,11 @@ class Controller(object):
     def is_flying_callback(self, msg):
 
         self.is_flying = msg.data
+
+
+    def ibvs_active_callback(self, msg):
+
+        self.ibvs_active = msg.data
 
 
     def cmd_callback(self, msg):
@@ -333,7 +340,13 @@ class Controller(object):
 
             # nested loop for altitude
             pddot = -np.sin(self.theta) * self.u + np.sin(self.phi)*np.cos(self.theta)*self.v + np.cos(self.phi)*np.cos(self.theta)*self.w
-            pddot_c = self.saturate(self.PID_w.computePID(self.xc_pd, self.pd, dt, pddot), self.max_w, -self.max_w)
+
+            # check to see if IBVS is active
+            if self.ibvs_active:
+                pddot_c = self.saturate(self.xc_pd, self.max_w, -self.max_w)  # this term should be coming in as w and here we are assuming w is close enough to pddot
+            else:
+                pddot_c = self.saturate(self.PID_w.computePID(self.xc_pd, self.pd, dt, pddot), self.max_w, -self.max_w)
+
             self.xc_az = self.PID_z.computePID(pddot_c, pddot, dt)
             # print statement if you want
             mode_flag = Command.MODE_XACC_YACC_YAWRATE_AZ
