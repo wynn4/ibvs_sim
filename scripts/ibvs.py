@@ -54,7 +54,7 @@ class ImageBasedVisualServoing(object):
         self.z_c = 10.0  # initialize to be greater than zero
 
         # positive definite weighting matrix W
-        self.W = pixel_size * np.diag([0.1, 0.1, 1., 1., 1., 1.])
+        self.W = pixel_size * np.diag([0.1, 0.1, 10., 1., 1., 1.])
 
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
