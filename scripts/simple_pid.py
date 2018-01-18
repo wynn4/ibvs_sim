@@ -47,7 +47,7 @@ class PID:
 				# Noise reduction (See "Small Unmanned Aircraft". Chapter 6. Slide 31/33)
 				# d/dx w.r.t. error:: differentiator_ = (2*tau_ - dt)/(2*tau_ + dt)*differentiator_ + 2/(2*tau_ + dt)*(error -
 				# last_error_);
-				self.differentiator_ = (2 * self.tau_ - dt) / (2 * self.tau_ + dt) * self.differentiator_ + 2 / (2 * self.tau_ + dt) * (current - self.last_state_)
+				self.differentiator_ = (2.0 * self.tau_ - dt) / (2.0 * self.tau_ + dt) * self.differentiator_ + 2.0 / (2.0 * self.tau_ + dt) * (current - self.last_state_)
 				d_term = self.kd_* self.differentiator_
 
 		# Calc Integrator Term
@@ -59,7 +59,7 @@ class PID:
 		self.last_error_ = error
 		self.last_state_ = current
 
-		u_unsat = p_term + i_term + d_term
+		u_unsat = p_term + i_term - d_term
 		u = self.saturate(u_unsat, self.max_, self.min_)
 		# anti windup
 		if (self.ki_ != 0.0):
@@ -88,6 +88,5 @@ class PID:
 		return rVal
 
 	def clearIntegrator(self):
+
 		self.integrator_ = 0.0
-
-
