@@ -4,6 +4,7 @@ import numpy as np
 
 import rospy, tf
 
+from std_msgs.msg import Bool
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from rosflight_msgs.msg import Command
@@ -51,6 +52,10 @@ class WaypointManager():
         self.xhat_sub_ = rospy.Subscriber('state', Odometry, self.odometryCallback, queue_size=5)
         self.ibvs_sub = rospy.Subscriber('/ibvs/vel_cmd', Twist, self.ibvs_velocity_cmd_callback, queue_size=1)
         self.waypoint_pub_ = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
+        self.ibvs_active_pub_ = rospy.Publisher('ibvs_active', Bool, queue_size=1)
+
+        self.ibvs_active_msg = Bool()
+        self.ibvs_active_msg.data = False
 
         self.current_waypoint_index = 0
 
@@ -87,29 +92,33 @@ class WaypointManager():
 
         time_cur = rospy.get_time()
 
+        self.ibvs_active_pub_.publish(self.ibvs_active_msg)
+
         # reset the ibvs counter if we haven't seen the ArUco for more than 1 second
         if time_cur - self.ibvs_time >= 1.0:
             self.ibvs_count = 0
             self.ibvs_active = False
+            self.ibvs_active_msg.data = False
             # print "ibvs counter reset..."
 
         # if the ArUco has been in sight for a while
         if self.ibvs_count > 100:
             
             # print "ibvs active!"
-            if self.ibvs_count > 1000:
-                self.ibvs_count = 101  # reset so it doesn't get too big
-
             self.ibvs_active = True
+            self.ibvs_active_msg.data = True
 
             ibvs_command_msg = Command()
             ibvs_command_msg.x = self.ibvs_x
             ibvs_command_msg.y = self.ibvs_y
-            # ibvs_command_msg.F = msg.pose.pose.position.z + self.ibvs_F * (5.0)  #  crazy town
-            ibvs_command_msg.F = self.descend_slowly  # :)
+            ibvs_command_msg.F = self.ibvs_F
+            # ibvs_command_msg.F = self.descend_slowly  # :)
             ibvs_command_msg.z = self.ibvs_z
             ibvs_command_msg.mode = Command.MODE_XVEL_YVEL_YAWRATE_ALTITUDE
             self.waypoint_pub_.publish(ibvs_command_msg)
+
+            if self.ibvs_count > 1000:
+                self.ibvs_count = 101  # reset so it doesn't get too big
 
         # go back to following regular waypoints    
         else:
