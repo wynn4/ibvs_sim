@@ -12,12 +12,13 @@ from rosflight_msgs.msg import Command
 from geometry_msgs.msg import Pose
 from simple_pid import PID
 import tf
+import time
 
 ## TODO: -finish initializing PID controllers in __init__  --done Jan 17
 ##       -add loading of applicable ros params in __init__ --done Jan 17
 ##       -finish compute_control function                  --done Jan 18
 ##       -finish saturate function                         --done Jan 18
-##       -test it out and debug
+##       -test it out and debug                            --done Jan 18
 ##       -add controller case for uvw commands (for IBVS)
 
 
@@ -146,11 +147,13 @@ class Controller(object):
         self.command_pub = rospy.Publisher('command', Command, queue_size=10)
 
         # initialize timer
-        self.update_rate = 100.0
+        self.update_rate = 200.0
         self.update_timer = rospy.Timer(rospy.Duration(1.0/self.update_rate), self.send_command)
 
 
     def send_command(self, event):
+
+        # t = time.time()  # for seeing how fast this runs
 
         if self.prev_time == 0:
             self.prev_time = rospy.get_time()
@@ -170,6 +173,10 @@ class Controller(object):
         else:
             reset_integrators()
             self.prev_time = rospy.get_time()
+
+        # elapsed = time.time() - t
+        # hz_approx = 1.0/elapsed
+        # print(hz_approx)
 
 
     def state_callback(self, msg):
