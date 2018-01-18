@@ -62,7 +62,7 @@
     </node>
 
     <!-- PID Position Controller -->
-    <node name="controller" pkg="roscopter" type="controller">
+    <node name="controller" pkg="ibvs_sim" type="controller.py">
       <!-- <remap from="estimate" to="ground_truth/odometry/NED"/> -->
       <remap from="estimate" to="estimate"/>
     </node>

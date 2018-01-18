@@ -15,8 +15,8 @@ import tf
 
 ## TODO: -finish initializing PID controllers in __init__  --done Jan 17
 ##       -add loading of applicable ros params in __init__ --done Jan 17
-##       -finish compute_control function
-##       -finish saturate function
+##       -finish compute_control function                  --done Jan 18
+##       -finish saturate function                         --done Jan 18
 ##       -test it out and debug
 ##       -add controller case for uvw commands (for IBVS)
 
@@ -91,6 +91,9 @@ class Controller(object):
         self.xc_pn = 0.0
         self.xc_pe = 0.0
         self.xc_pd = 0.0
+
+        self.xc_phi = 0.0
+        self.xc_theta = 0.0
         self.xc_psi = 0.0
 
         self.xc_u = 0.0
@@ -102,6 +105,8 @@ class Controller(object):
         self.xc_ay = 0.0
         self.xc_az = 0.0
         self.xc_r = 0.0
+
+        self.xc_throttle = 0.0
 
         # initialize saturation values
         self.max_roll = rospy.get_param('max_roll', 0.15)
@@ -141,7 +146,7 @@ class Controller(object):
         self.command_pub = rospy.Publisher('command', Command, queue_size=10)
 
         # initialize timer
-        self.update_rate = 200.0
+        self.update_rate = 100.0
         self.update_timer = rospy.Timer(rospy.Duration(1.0/self.update_rate), self.send_command)
 
 
@@ -279,6 +284,8 @@ class Controller(object):
 
         self.reset_integrators()
 
+        return config
+
 
     def compute_control(self, dt):
 
@@ -314,8 +321,8 @@ class Controller(object):
 
             max_ax = np.sin(np.arccos(self.thrust_eq))
             max_ay = np.sin(np.arccos(self.thrust_eq))
-            self.xc_ax = self.saturate(self.PID_u.computePID(self.xc_u, self.u, dt) + self.drag_constant*self.u / (9.80665 * self.mass), self.max_ax, -self.max_ax)
-            self.xc_ay = self.saturate(self.PID_v.computePID(self.xc_v, self.v, dt) + self.drag_constant*self.v / (9.80665 * self.mass), self.max_ay, -self.max_ay)
+            self.xc_ax = self.saturate(self.PID_u.computePID(self.xc_u, self.u, dt) + self.drag_constant*self.u / (9.80665 * self.mass), max_ax, -max_ax)
+            self.xc_ay = self.saturate(self.PID_v.computePID(self.xc_v, self.v, dt) + self.drag_constant*self.v / (9.80665 * self.mass), max_ay, -max_ay)
 
             # nested loop for altitude
             pddot = -np.sin(self.theta) * self.u + np.sin(self.phi)*np.cos(self.theta)*self.v + np.cos(self.phi)*np.cos(self.theta)*self.w
@@ -326,22 +333,37 @@ class Controller(object):
 
         if mode_flag == Command.MODE_XACC_YACC_YAWRATE_AZ:
 
-            # stuff
-
-        if mode_flag == Command.MODE_ROLL_PITCH_YAWRATE_THROTTLE:
-
             # Model inversion (m[ax;ay;az] = m[0;0;g] + R'[0;0;-T]
             # This model tends to pop the MAV up in the air when a large change
             # in control is commanded as the MAV rotates to it's commanded attitude while also ramping up throttle.
             # It works quite well, but it is a little oversimplified.
+            total_acc_c = np.sqrt((1.0-self.xc_az)*(1.0-self.xc_az) + self.xc_ax*self.xc_ax + self.xc_ay*self.xc_ay)  #(in g's)
+            # print('roscopter/controller: total_acc = {}'.format(total_acc_c))
+            if total_acc_c > 0.001:
+                self.xc_phi = np.arcsin(self.xc_ay / total_acc_c)
+                self.xc_theta = -1.0*np.arcsin(self.xc_ax / total_acc_c)
+            else:
+                self.xc_phi = 0.0
+                self.xc_theta = 0.0
 
-            
+            # calculate actual throttle (saturate az to be falling at 1 g)
+            max_az = 1.0 / self.thrust_eq
+            self.xc_az = self.saturate(self.xc_az, 1.0, -max_az)
+            total_acc_c = np.sqrt((1.0-self.xc_az)*(1.0-self.xc_az) + self.xc_ax*self.xc_ax + self.xc_ay*self.xc_ay)  #(in g's)
+            self.xc_throttle = total_acc_c*self.thrust_eq  # calculate the total thrust in normalized units
 
+            # print '\nxc_az:', self.xc_az, '\nmax_az:', max_az, '\ntotal_acc_c:', total_acc_c, '\nthrottle:', self.xc_throttle
 
-        
+            mode_flag = Command.MODE_ROLL_PITCH_YAWRATE_THROTTLE
 
+        if mode_flag == Command.MODE_ROLL_PITCH_YAWRATE_THROTTLE:
 
-
+            # pack up and send the command
+            self.command.mode = Command.MODE_ROLL_PITCH_YAWRATE_THROTTLE
+            self.command.F = self.saturate(self.xc_throttle, self.max_throttle, 0.0)
+            self.command.x = self.saturate(self.xc_phi, self.max_roll, -self.max_roll)
+            self.command.y = self.saturate(self.xc_theta, self.max_pitch, -self.max_pitch)
+            self.command.z = self.saturate(self.xc_r, self.max_yaw_rate, -self.max_yaw_rate)
 
 
     def reset_integrators(self):
@@ -355,9 +377,15 @@ class Controller(object):
         self.PID_psi.clearIntegrator()
 
     
-    def saturate(self):
+    def saturate(self, x, maximum, minimum):
+        if(x > maximum):
+            rVal = maximum
+        elif(x < minimum):
+            rVal = minimum
+        else:
+            rVal = x
 
-        # stuff
+        return rVal
 
 
 
@@ -366,7 +394,7 @@ def main():
     # initialize a node
     rospy.init_node('controller')
 
-    # create instance of LevelFrameMapper class
+    # create instance of Controller class
     controller = Controller()
 
     # spin
