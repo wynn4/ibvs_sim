@@ -28,41 +28,41 @@ class Controller(object):
         # load ROS params
 
         # PID gains
-        u_P = rospy.get_param('u_P', 0.2)
-        u_I = rospy.get_param('u_I', 0.0)
-        u_D = rospy.get_param('u_D', 0.01)
+        u_P = rospy.get_param('~u_P', 0.2)
+        u_I = rospy.get_param('~u_I', 0.0)
+        u_D = rospy.get_param('~u_D', 0.01)
 
-        v_P = rospy.get_param('v_P', 0.2)
-        v_I = rospy.get_param('v_I', 0.0)
-        v_D = rospy.get_param('v_D', 0.01)
+        v_P = rospy.get_param('~v_P', 0.2)
+        v_I = rospy.get_param('~v_I', 0.0)
+        v_D = rospy.get_param('~v_D', 0.01)
 
-        w_P = rospy.get_param('w_P', 3.0)
-        w_I = rospy.get_param('w_I', 0.05)
-        w_D = rospy.get_param('w_D', 0.5)
+        w_P = rospy.get_param('~w_P', 3.0)
+        w_I = rospy.get_param('~w_I', 0.05)
+        w_D = rospy.get_param('~w_D', 0.5)
 
-        x_P = rospy.get_param('x_P', 0.5)
-        x_I = rospy.get_param('x_I', 0.01)
-        x_D = rospy.get_param('x_D', 0.1)
+        x_P = rospy.get_param('~x_P', 0.5)
+        x_I = rospy.get_param('~x_I', 0.01)
+        x_D = rospy.get_param('~x_D', 0.1)
 
-        y_P = rospy.get_param('y_P', 0.5)
-        y_I = rospy.get_param('y_I', 0.01)
-        y_D = rospy.get_param('y_D', 0.1)
+        y_P = rospy.get_param('~y_P', 0.5)
+        y_I = rospy.get_param('~y_I', 0.01)
+        y_D = rospy.get_param('~y_D', 0.1)
 
-        z_P = rospy.get_param('z_P', 1.0)
-        z_I = rospy.get_param('z_I', 0.1)
-        z_D = rospy.get_param('z_D', 0.4)
+        z_P = rospy.get_param('~z_P', 1.0)
+        z_I = rospy.get_param('~z_I', 0.1)
+        z_D = rospy.get_param('~z_D', 0.4)
 
-        psi_P = rospy.get_param('psi_P', 0.5)
-        psi_I = rospy.get_param('psi_I', 0.0)
-        psi_D = rospy.get_param('psi_D', 0.0)
+        psi_P = rospy.get_param('~psi_P', 0.5)
+        psi_I = rospy.get_param('~psi_I', 0.0)
+        psi_D = rospy.get_param('~psi_D', 0.0)
 
-        tau = rospy.get_param('tau', 0.04)
+        tau = rospy.get_param('~tau', 0.04)
 
         # quadcopter params
-        self.max_thrust = rospy.get_param('max_F', 60.0)
-        self.mass = rospy.get_param('mass', 3.0)
+        self.max_thrust = rospy.get_param('dynamics/max_F', 60.0)
+        self.mass = rospy.get_param('dynamics/mass', 3.0)
         self.thrust_eq = (9.80665 * self.mass) / self.max_thrust
-        self.drag_constant = rospy.get_param('linear_mu', 0.1)
+        self.drag_constant = rospy.get_param('dynamics/linear_mu', 0.1)
 
         # initialize state variables
         self.pn = 0.0
@@ -109,13 +109,13 @@ class Controller(object):
         self.xc_throttle = 0.0
 
         # initialize saturation values
-        self.max_roll = rospy.get_param('max_roll', 0.15)
-        self.max_pitch = rospy.get_param('max_pitch', 0.15)
-        self.max_yaw_rate = rospy.get_param('max_yaw_rate', np.radians(45.0))
-        self.max_throttle = rospy.get_param('max_throttle', 1.0)
-        self.max_u = rospy.get_param('max_u', 1.0)
-        self.max_v = rospy.get_param('max_v', 1.0)
-        self.max_w = rospy.get_param('max_x', 1.0)
+        self.max_roll = rospy.get_param('~max_roll', 0.15)
+        self.max_pitch = rospy.get_param('~max_pitch', 0.15)
+        self.max_yaw_rate = rospy.get_param('~max_yaw_rate', np.radians(45.0))
+        self.max_throttle = rospy.get_param('~max_throttle', 1.0)
+        self.max_u = rospy.get_param('~max_u', 1.0)
+        self.max_v = rospy.get_param('~max_v', 1.0)
+        self.max_w = rospy.get_param('~max_x', 1.0)
 
         # initialize PID controllers
         self.PID_u = PID(u_P, u_I, u_D, None, None, tau)
