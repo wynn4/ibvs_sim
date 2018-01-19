@@ -63,15 +63,15 @@
 
     <!-- PID Position Controller -->
     <node name="controller" pkg="ibvs_sim" type="controller.py" output="screen">
-      <remap from="estimate" to="ground_truth/odometry/NED"/>
-      <!-- <remap from="estimate" to="estimate"/> -->
+      <!-- <remap from="estimate" to="ground_truth/odometry/NED"/> -->
+      <remap from="estimate" to="estimate"/>
     </node>
 
     <!-- Waypoint Manager -->
     <node name="waypoint_manager" pkg="ibvs_sim" type="ibvs_waypoint_manager.py" output="screen">
       <remap from="waypoint" to="high_level_command"/>
-      <remap from="state" to="ground_truth/odometry/NED"/>
-      <!-- <remap from="state" to="estimate"/> -->
+      <!-- <remap from="state" to="ground_truth/odometry/NED"/> -->
+      <remap from="state" to="estimate"/>
     </node>
 
     <!-- plot states -->
@@ -85,7 +85,7 @@
   <!-- IBVS_SIM-->
   <!-- level-frame mapper -->
   <node pkg="ibvs_sim" type="level_frame_mapper.py" name="level_frame_mapper" output="screen">
-    <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/>
+    <!-- <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/> -->
   </node>
 
   <!-- IBVS -->

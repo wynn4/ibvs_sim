@@ -209,7 +209,12 @@ class ImageBasedVisualServoing(object):
     def aruco_callback(self, msg):
 
         # all we need is distance to the ArUco, z_c
-        self.z_c = msg.pose.position.z
+        z_c = msg.pose.position.z
+
+        if z_c >= 3.0:
+            self.z_c = 3.0
+        else:
+            self.z_c = z_c
 
 
 
