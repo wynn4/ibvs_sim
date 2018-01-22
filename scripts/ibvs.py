@@ -2,6 +2,11 @@
 
 ## Simple ROS node that subcribes to pixel data in the virtual level frame
 ## and computes image-based visual servoing control
+##
+## Sources:
+## Lee et al. "Autonomous Landing of a VTOL UAV on a Moving Platform Using Image-based Visual Servoing"
+## Corke, Peter "Robotics, Vision and Control"
+##
 ## JSW Dec 2017
 
 import rospy
@@ -24,10 +29,14 @@ class ImageBasedVisualServoing(object):
 
         ## initialize other class variables
 
+        # if set to True, IBVS is computed according to eq. 15.11 from Corke
+        # if set to False, IBVS is computed according to eq. 10 from Lee
+        self.inverse_method = True
+
         # IBVS saturation values
-        self.u_max = 0.5
-        self.v_max = 0.5
-        self.w_max = 1.0
+        self.u_max = 0.2
+        self.v_max = 0.2
+        self.w_max = 0.7
         self.psidot_max = np.radians(45.0)
 
         # image size
@@ -59,12 +68,15 @@ class ImageBasedVisualServoing(object):
         # distance (height) to the ArUco
         self.z_c = 10.0  # initialize to be greater than zero
 
-        # positive definite weighting matrix W
+        # positive definite weighting matrix W from Lee eq. 10 (tuning param)
         self.W = pixel_size * np.diag([0.1, 0.1, 10., 1., 1., 1.])
+
+        # lambda from Corke eq. 15.11 (turning param)
+        self.lam = np.array([2.0, 2.0, 1.0, 1.0, 1.0, 1.0], dtype=np.float32).reshape(6,1)  # 6x1
 
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
-        self.p_des = np.array([-200, -200, 200, -200, 200, 200, -200, 200], dtype=np.float32).reshape(8,1)
+        self.p_des = np.array([-200, -200, 200, -200, 200, 200, -200, 200], dtype=np.float32).reshape(8,1)  # 8x1
 
         # rotation from the virtual level frame to the vehicle 1 frame
         self.R_vlc_v1 = np.array([[0., -1., 0.],
@@ -120,11 +132,17 @@ class ImageBasedVisualServoing(object):
 
         # formulate the error term e = p - p_des
         p = np.array([u1, v1, u2, v2, u3, v3, u4, v4]).reshape(8,1)
-        e = p - self.p_des
+        # e = p - self.p_des  # 8x1
 
-        # formulate the desired camera velocity vector rdot_des from eq(10)
-        # rdot_des = -self.W * Jp.T * e
-        rdot_des = - self.W.dot(Jp.T).dot(e)
+        # formulate the desired camera velocity vector rdot_des
+        if self.inverse_method:
+            e = self.p_des - p
+            # v = lambda * pinv(Jp) * e
+            rdot_des = self.lam * np.linalg.pinv(Jp).dot(e)
+        else:
+            e = p - self.p_des
+            # rdot_des = -self.W * Jp.T * e
+            rdot_des = - self.W.dot(Jp.T).dot(e)  # Lee eq. 10
 
         # break rdot_des into its linear and angular components
         rdot_des_linear = rdot_des[:3][:]  # 3x1 [vx, vy, vz].T
@@ -134,6 +152,8 @@ class ImageBasedVisualServoing(object):
         # TODO maybe we should rotate all the way into the body frame???
         v_des_v1_linear = np.dot(self.R_vlc_v1, rdot_des_linear)  # 3x1
         v_des_v1_angular = np.dot(self.R_vlc_v1, rdot_des_angular)  # 3x1
+
+        # print "\nv_des_linear: ", '\n', v_des_v1_linear
         
         # saturate and fill out the velocity command message
         self.vel_cmd_msg.linear.x = self.saturate(v_des_v1_linear[0][0], self.u_max, -self.u_max)
@@ -188,7 +208,7 @@ class ImageBasedVisualServoing(object):
         # all we need is distance to the ArUco, z_c
         z_c = msg.pose.position.z
 
-        if z_c >= 3.0:
+        if z_c >= 3.0 and self.inverse_method == False:
             self.z_c = 3.0
         else:
             self.z_c = z_c
