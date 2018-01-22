@@ -164,6 +164,8 @@ class WaypointManager():
         self.ibvs_F = msg.linear.z
         self.ibvs_z = msg.angular.z
 
+        # print '\nx_vel:', self.ibvs_x, '\ny_vel:', self.ibvs_y, '\nz_vel:', self.ibvs_F
+
         # increment the counter
         self.ibvs_count += 1
 
@@ -175,7 +177,7 @@ class WaypointManager():
 
         if self.ibvs_active:
             self.descend_slowly += 0.1
-            print(self.descend_slowly)
+            # print(self.descend_slowly)
 
 
 if __name__ == '__main__':

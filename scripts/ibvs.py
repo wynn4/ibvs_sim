@@ -24,6 +24,12 @@ class ImageBasedVisualServoing(object):
 
         ## initialize other class variables
 
+        # IBVS saturation values
+        self.u_max = 0.5
+        self.v_max = 0.5
+        self.w_max = 1.0
+        self.psidot_max = np.radians(45.0)
+
         # image size
         # TODO get these params automatically
         self.img_w = 1288
@@ -129,46 +135,17 @@ class ImageBasedVisualServoing(object):
         v_des_v1_linear = np.dot(self.R_vlc_v1, rdot_des_linear)  # 3x1
         v_des_v1_angular = np.dot(self.R_vlc_v1, rdot_des_angular)  # 3x1
         
-        # fill out the velocity command message
-        self.vel_cmd_msg.linear.x = v_des_v1_linear[0][0]
-        self.vel_cmd_msg.linear.y = v_des_v1_linear[1][0]
-        self.vel_cmd_msg.linear.z = v_des_v1_linear[2][0]
+        # saturate and fill out the velocity command message
+        self.vel_cmd_msg.linear.x = self.saturate(v_des_v1_linear[0][0], self.u_max, -self.u_max)
+        self.vel_cmd_msg.linear.y = self.saturate(v_des_v1_linear[1][0], self.v_max, -self.v_max)
+        self.vel_cmd_msg.linear.z = self.saturate(v_des_v1_linear[2][0], self.w_max, -self.w_max)
 
         self.vel_cmd_msg.angular.x = v_des_v1_angular[0][0]
         self.vel_cmd_msg.angular.y = v_des_v1_angular[1][0]
-        self.vel_cmd_msg.angular.z = v_des_v1_angular[2][0]
+        self.vel_cmd_msg.angular.z = self.saturate(v_des_v1_angular[2][0], self.psidot_max, -self.psidot_max)
 
         # publish
         self.vel_cmd_pub.publish(self.vel_cmd_msg)
-
-        # if self.show:
-
-        #     # clear out the frame
-        #     self.level_frame.fill(0)
-
-        #     # draw the level-frame pixel coordinates and desired coordinates
-        #     cv2.circle(self.level_frame, (int(u1+self.img_w/2.0), int(v1+self.img_h/2.0)), 10, (0, 0, 255))
-        #     cv2.circle(self.level_frame, (int(u2+self.img_w/2.0), int(v2+self.img_h/2.0)), 10, (0, 0, 255))
-        #     cv2.circle(self.level_frame, (int(u3+self.img_w/2.0), int(v3+self.img_h/2.0)), 10, (0, 0, 255))
-        #     cv2.circle(self.level_frame, (int(u4+self.img_w/2.0), int(v4+self.img_h/2.0)), 10, (0, 0, 255))
-
-        #     cv2.circle(self.level_frame, (int(self.p_des[0][0]+self.img_w/2.0), int(self.p_des[1][0]+self.img_h/2.0)), 10, (0, 255, 0))
-        #     cv2.circle(self.level_frame, (int(self.p_des[2][0]+self.img_w/2.0), int(self.p_des[3][0]+self.img_h/2.0)), 10, (0, 255, 0))
-        #     cv2.circle(self.level_frame, (int(self.p_des[4][0]+self.img_w/2.0), int(self.p_des[5][0]+self.img_h/2.0)), 10, (0, 255, 0))
-        #     cv2.circle(self.level_frame, (int(self.p_des[6][0]+self.img_w/2.0), int(self.p_des[7][0]+self.img_h/2.0)), 10, (0, 255, 0))
-
-        #     cv2.line(self.level_frame, (int(u1+self.img_w/2.0), int(v1+self.img_h/2.0)), (int(self.p_des[0][0]+self.img_w/2.0), int(self.p_des[1][0]+self.img_h/2.0)), (255, 0, 0))
-        #     cv2.line(self.level_frame, (int(u2+self.img_w/2.0), int(v2+self.img_h/2.0)), (int(self.p_des[2][0]+self.img_w/2.0), int(self.p_des[3][0]+self.img_h/2.0)), (255, 0, 0))
-        #     cv2.line(self.level_frame, (int(u3+self.img_w/2.0), int(v3+self.img_h/2.0)), (int(self.p_des[4][0]+self.img_w/2.0), int(self.p_des[5][0]+self.img_h/2.0)), (255, 0, 0))
-        #     cv2.line(self.level_frame, (int(u4+self.img_w/2.0), int(v4+self.img_h/2.0)), (int(self.p_des[6][0]+self.img_w/2.0), int(self.p_des[7][0]+self.img_h/2.0)), (255, 0, 0))
-
-        #     # display the image
-        #     cv2.imshow("level_frame_image", self.level_frame)
-        #     cv2.waitKey(1)
-
-        # elapsed = time.time() - t
-        # hz_approx = 1.0/elapsed
-        # print(hz_approx)
 
         
     def attitude_callback(self, msg):
@@ -215,6 +192,17 @@ class ImageBasedVisualServoing(object):
             self.z_c = 3.0
         else:
             self.z_c = z_c
+
+
+    def saturate(self, x, maximum, minimum):
+        if(x > maximum):
+            rVal = maximum
+        elif(x < minimum):
+            rVal = minimum
+        else:
+            rVal = x
+
+        return rVal
 
 
 
