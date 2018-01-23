@@ -2,20 +2,35 @@ cmake_minimum_required(VERSION 2.8.3)
 project(ibvs_sim)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  cmake_modules
+  nav_msgs
   roscpp
   rospy
   std_msgs
+  rosflight_msgs
+  rosflight_utils
   dynamic_reconfigure
+  geometry_msgs
+  sensor_msgs
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+
+find_package(Eigen REQUIRED)
+find_package(gazebo REQUIRED)
+link_directories(${GAZEBO_LIBRARY_DIRS})
+include_directories(${GAZEBO_INCLUDE_DIRS})
+include_directories(${OpenCV_INCLUDE_DIRS})
+
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -102,11 +117,11 @@ generate_dynamic_reconfigure_options(
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
+
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES ibvs_sim
-#  CATKIN_DEPENDS roscpp rospy std_msgs
-#  DEPENDS system_lib
+ INCLUDE_DIRS include ${Eigen_INCLUDE_DIRS}
+ CATKIN_DEPENDS roscpp rospy std_msgs rosflight_msgs rosflight_utils
+ DEPENDS eigen
 )
 
 ###########
@@ -116,14 +131,21 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
+  plugins/include/
 )
 
+include_directories(${Eigen_INCLUDE_DIRS})
+
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/ibvs_sim.cpp
-# )
+
+add_library(boat_forces_and_moments_plugin
+  plugins/src/boat_forces_and_moments.cpp
+  plugins/include/boat_plugins/boat_forces_and_moments.h
+)
+target_link_libraries(boat_forces_and_moments_plugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
+add_dependencies(boat_forces_and_moments_plugin ${catkin_EXPORTED_TARGETS} rosflight_msgs_generate_messages_cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -184,6 +206,13 @@ include_directories(
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
+
+install(
+  TARGETS
+  boat_forces_and_moments_plugin
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
 
 #############
 ## Testing ##

@@ -1,0 +1,36 @@
+# ========================= Shared parameters =========================
+boat_mass: 200.0
+boat_ixx: 5.0
+boat_ixy: 0.0
+boat_ixz: 0.0
+boat_iyy: 5.0
+boat_iyz: 0.0
+boat_izz: 5.0
+
+ANGULAR_SATURATION: 10.0
+
+# ===================== Parameters for boat.xacro =====================
+boat_type: 'pontoon' # can be "patrol" or "pontoon"
+aruco_num: 166 # 1-3 (4 doesn't work for some reason)
+
+# ================ Parameters for boat_command ros node ================
+use_joy: false
+linear_multiplier: 2.0
+angular_multiplier: 0.2
+
+# only used if use_joy is false
+rotate_roll: false
+roll_omega: 1.75
+rotate_pitch: false
+pitch_omega: 1.2
+
+## eventually, it would be good to alter yaw and
+
+# ======== Parameters for boat_forces_and_moments gazebo plugin ========
+GRAVITY_CONST: 9.80665
+LINEAR_P_GAIN: 120.0
+LINEAR_I_GAIN: 0.0
+LINEAR_D_GAIN: 260.0
+ANGULAR_P_GAIN: 5.0
+ANGULAR_I_GAIN: 0.0
+ANGULAR_D_GAIN: 20.0

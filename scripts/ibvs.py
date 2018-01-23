@@ -56,11 +56,6 @@ class ImageBasedVisualServoing(object):
         pixel_um = 3.75  # pixel size in micrometers
         pixel_size = pixel_um * 1e-6  # pixel size in meters
 
-        # # visualization params
-        # self.show = True
-        # shape = (self.img_h, self.img_w, 3)
-        # self.level_frame = np.zeros(shape, np.uint8)
-
         # copter attitude roll and pitch
         self.phi = 0.0
         self.theta = 0.0
@@ -139,6 +134,7 @@ class ImageBasedVisualServoing(object):
             e = self.p_des - p
             # v = lambda * pinv(Jp) * e
             rdot_des = self.lam * np.linalg.pinv(Jp).dot(e)
+            # NOTE: In the future, I may want to try Corke's 2nd Order Jacobian (eq. 15.12)
         else:
             e = p - self.p_des
             # rdot_des = -self.W * Jp.T * e
