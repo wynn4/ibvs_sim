@@ -93,7 +93,7 @@ class LevelFrameMapper(object):
         self.R_c_vlc = np.zeros((3,3))
 
         # initialize subscribers
-        self.corner_pix_sub = rospy.Subscriber('/aruco/marker_corners', FloatList, self.corners_callback)
+        self.corner_pix_sub = rospy.Subscriber('/aruco/marker_corners1', FloatList, self.corners_callback)
         self.attitude_sub = rospy.Subscriber('/quadcopter/estimate', Odometry, self.attitude_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
 

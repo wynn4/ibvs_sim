@@ -11,7 +11,7 @@ ANGULAR_SATURATION: 10.0
 
 # ===================== Parameters for boat.xacro =====================
 boat_type: 'pontoon' # can be "patrol" or "pontoon"
-aruco_num: 166 # 1-3 (4 doesn't work for some reason)
+aruco_num: 104166 # 1-3 (4 doesn't work for some reason)
 
 # ================ Parameters for boat_command ros node ================
 use_joy: false
