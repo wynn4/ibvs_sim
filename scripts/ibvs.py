@@ -89,7 +89,7 @@ class ImageBasedVisualServoing(object):
 
         # initialize subscribers
         self.uv_bar_sub = rospy.Subscriber('/ibvs/uv_bar_lf', FloatList, self.level_frame_corners_callback)
-        self.aruco_sub = rospy.Subscriber('/aruco/estimate1', PoseStamped, self.aruco_callback)
+        self.aruco_sub = rospy.Subscriber('/aruco/estimate', PoseStamped, self.aruco_callback)
         self.attitude_sub = rospy.Subscriber('/quadcopter/estimate', Odometry, self.attitude_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
 

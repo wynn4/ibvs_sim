@@ -15,7 +15,8 @@
   <arg name="debug"               default="false"/>
 
   <!-- ArUco args -->
-  <arg name="show" default="true" />
+  <arg name="show_camera" default="false" />
+  <arg name="show_aruco_detections" default="true" />
 
   <!-- Start Simulator -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -94,7 +95,7 @@
 
   <!-- ArUco Localization -->
   <node pkg="aruco_localization" type="aruco_localization" name="aruco" output="screen">
-    <param name="show_output_video" value="$(arg show)" />
+    <param name="show_output_video" value="$(arg show_aruco_detections)" />
     <param name="markermap_config" value="$(find ibvs_sim)/params/marker_166.yaml" />
     <!-- <param name="marker_size" value="0.1760" /> -->
     <param name="marker_size" value="0.7071" />
@@ -107,7 +108,7 @@
     <remap from="output_image" to="aruco/image" />
   </node>
 
-  <group if="$(arg show)">
+  <group if="$(arg show_camera)">
     <node name="image_view" pkg="image_view" type="image_view" respawn="false" output="screen">
       <remap from="image" to="/quadcopter/camera/rgb"/>
       <param name="autosize" value="true" />
