@@ -57,8 +57,9 @@ class ImageBasedVisualServoing(object):
         pixel_size = pixel_um * 1e-6  # pixel size in meters
 
         # copter attitude roll and pitch
-        self.phi = 0.0
-        self.theta = 0.0
+        # self.phi = 0.0
+        # self.theta = 0.0
+        self.altitude = 0.0
 
         # distance (height) to the ArUco
         self.z_c = 10.0  # initialize to be greater than zero
@@ -90,7 +91,7 @@ class ImageBasedVisualServoing(object):
         # initialize subscribers
         self.uv_bar_sub = rospy.Subscriber('/ibvs/uv_bar_lf', FloatList, self.level_frame_corners_callback)
         self.aruco_sub = rospy.Subscriber('/aruco/estimate', PoseStamped, self.aruco_callback)
-        self.attitude_sub = rospy.Subscriber('/quadcopter/estimate', Odometry, self.attitude_callback)
+        self.attitude_sub = rospy.Subscriber('/quadcopter/estimate', Odometry, self.altitude_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
 
         # initialize publishers
@@ -164,21 +165,22 @@ class ImageBasedVisualServoing(object):
         self.vel_cmd_pub.publish(self.vel_cmd_msg)
 
         
-    def attitude_callback(self, msg):
+    def altitude_callback(self, msg):
 
         # get the quaternion orientation from the message
-        quaternion = (
-            msg.pose.pose.orientation.x,
-            msg.pose.pose.orientation.y,
-            msg.pose.pose.orientation.z,
-            msg.pose.pose.orientation.w)
+        # quaternion = (
+        #     msg.pose.pose.orientation.x,
+        #     msg.pose.pose.orientation.y,
+        #     msg.pose.pose.orientation.z,
+        #     msg.pose.pose.orientation.w)
 
-        # convert to euler angles 
-        euler = tf.transformations.euler_from_quaternion(quaternion)
+        # # convert to euler angles 
+        # euler = tf.transformations.euler_from_quaternion(quaternion)
 
-        # update class variables
-        self.phi = euler[0]
-        self.theta = euler[1]
+        # # update class variables
+        # self.phi = euler[0]
+        # self.theta = euler[1]
+        self.altitude = -msg.pose.pose.position.z
 
 
     def camera_info_callback(self, msg):
@@ -201,6 +203,20 @@ class ImageBasedVisualServoing(object):
 
     def aruco_callback(self, msg):
 
+        # check for NaNs coming from ArUco estimate
+        if np.isnan(msg.pose.position.z):
+            # print "Nan!"
+            z_c = self.altitude
+
+            if z_c >= 3.0 and self.inverse_method == False:
+                self.z_c = 3.0
+            else:
+               self.z_c = z_c
+
+            return
+
+
+        
         # all we need is distance to the ArUco, z_c
         z_c = msg.pose.position.z
 
