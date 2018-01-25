@@ -244,6 +244,13 @@ class Controller(object):
             self.xc_r = msg.z
             self.control_mode = mode
 
+        elif mode == Command.MODE_ROLL_PITCH_YAWRATE_THROTTLE:
+            self.xc_phi = msg.x
+            self.xc_theta = msg.y
+            self.xc_throttle = msg.F
+            self.xc_r = msg.z
+            self.control_mode = mode
+
         else:
             print('roscopter/controller: Unhandled command message of type {}'.format(mode))
 
