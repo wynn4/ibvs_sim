@@ -7,6 +7,7 @@ import rospy, tf
 from std_msgs.msg import Bool
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
+from geometry_msgs.msg import PoseStamped
 from rosflight_msgs.msg import Command
 from roscopter_msgs.srv import AddWaypoint, RemoveWaypoint, SetWaypointsFromFile
 
@@ -23,6 +24,7 @@ class WaypointManager():
             rospy.signal_shutdown('Parameters not set')
 
         # ibvs parameters
+        # outer
         self.ibvs_x = 0.0
         self.ibvs_y = 0.0
         self.ibvs_F = 0.0
@@ -31,6 +33,20 @@ class WaypointManager():
         self.ibvs_count = 0
         self.ibvs_time = rospy.get_time()
         self.ibvs_active = False
+
+        # inner
+        self.ibvs_x_inner = 0.0
+        self.ibvs_y_inner = 0.0
+        self.ibvs_F_inner = 0.0
+        self.ibvs_z_inner = 0.0
+
+        self.ibvs_count_inner = 0
+        self.ibvs_time_inner = rospy.get_time()
+        self.ibvs_active_inner = False
+
+        self.counters_frozen = False
+        self.altitude = 10.0
+
 
         self.descend_slowly = -15.0  # start at 5 meters above ground
 
@@ -51,6 +67,8 @@ class WaypointManager():
         # Set Up Publishers and Subscribers
         self.xhat_sub_ = rospy.Subscriber('state', Odometry, self.odometryCallback, queue_size=5)
         self.ibvs_sub = rospy.Subscriber('/ibvs/vel_cmd', Twist, self.ibvs_velocity_cmd_callback, queue_size=1)
+        self.ibvs_inner_sub = rospy.Subscriber('/ibvs_inner/vel_cmd', Twist, self.ibvs_velocity_cmd_inner_callback, queue_size=1)
+        self.aruco_sub = rospy.Subscriber('/aruco_inner/estimate', PoseStamped, self.aruco_inner_callback)
         self.waypoint_pub_ = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
         self.ibvs_active_pub_ = rospy.Publisher('ibvs_active', Bool, queue_size=1)
 
@@ -95,34 +113,63 @@ class WaypointManager():
         self.ibvs_active_pub_.publish(self.ibvs_active_msg)
 
         # reset the ibvs counter if we haven't seen the ArUco for more than 1 second
-        if time_cur - self.ibvs_time >= 1.0:
+        if time_cur - self.ibvs_time >= 1.0 and self.counters_frozen == False:
             self.ibvs_count = 0
             self.ibvs_active = False
             self.ibvs_active_msg.data = False
             # print "ibvs counter reset..."
 
+        if time_cur - self.ibvs_time_inner >= 1.0 and self.counters_frozen == False:
+            self.ibvs_count_inner = 0
+
         # if the ArUco has been in sight for a while
-        if self.ibvs_count > 100:
+        if self.ibvs_count > 100 or self.ibvs_count_inner > 30:
             
             # print "ibvs active!"
             self.ibvs_active = True
             self.ibvs_active_msg.data = True
 
-            ibvs_command_msg = Command()
-            ibvs_command_msg.x = self.ibvs_x
-            ibvs_command_msg.y = self.ibvs_y
-            ibvs_command_msg.F = self.ibvs_F
-            # ibvs_command_msg.F = self.descend_slowly  # :)
-            ibvs_command_msg.z = self.ibvs_z
-            ibvs_command_msg.mode = Command.MODE_XVEL_YVEL_YAWRATE_ALTITUDE
-            self.waypoint_pub_.publish(ibvs_command_msg)
+            if self.ibvs_count_inner > 30:
 
-            if self.ibvs_count > 1000:
-                self.ibvs_count = 101  # reset so it doesn't get too big
+                # in this case we enter an open-loop drop onto the marker
+                if self.altitude < 1.0:
+                    # freeze the counters
+                    self.counters_frozen = True
+                    ibvs_command_msg = Command()
+                    ibvs_command_msg.x = 0.0
+                    ibvs_command_msg.y = 0.0
+                    ibvs_command_msg.F = 0.0
+                    ibvs_command_msg.z = 0.0
+                    ibvs_command_msg.mode = Command.MODE_ROLL_PITCH_YAWRATE_THROTTLE
+                    self.waypoint_pub_.publish(ibvs_command_msg)
+                    # stuff
+                else:
+                    ibvs_command_msg = Command()
+                    ibvs_command_msg.x = self.ibvs_x_inner
+                    ibvs_command_msg.y = self.ibvs_y_inner
+                    ibvs_command_msg.F = self.ibvs_F_inner
+                    ibvs_command_msg.z = self.ibvs_z_inner
+                    ibvs_command_msg.mode = Command.MODE_XVEL_YVEL_YAWRATE_ALTITUDE
+                    self.waypoint_pub_.publish(ibvs_command_msg)
+
+                    if self.ibvs_count_inner > 1000:
+                        self.ibvs_count_inner = 31  # reset so it doesn't get too big
+            else:
+                ibvs_command_msg = Command()
+                ibvs_command_msg.x = self.ibvs_x
+                ibvs_command_msg.y = self.ibvs_y
+                ibvs_command_msg.F = self.ibvs_F
+                # ibvs_command_msg.F = self.descend_slowly  # :)
+                ibvs_command_msg.z = self.ibvs_z
+                ibvs_command_msg.mode = Command.MODE_XVEL_YVEL_YAWRATE_ALTITUDE
+                self.waypoint_pub_.publish(ibvs_command_msg)
+
+                if self.ibvs_count > 1000:
+                    self.ibvs_count = 101  # reset so it doesn't get too big
 
         # go back to following regular waypoints    
         else:
-
+            # print "following waypoints"
             # Get error between waypoint and current state
             current_waypoint = np.array(self.waypoint_list[self.current_waypoint_index])
             (r, p, y) = tf.transformations.euler_from_quaternion([msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w])
@@ -173,11 +220,33 @@ class WaypointManager():
         self.ibvs_time = rospy.get_time()
 
 
+    def ibvs_velocity_cmd_inner_callback(self, msg):
+
+        # pull off the message data
+        self.ibvs_x_inner = msg.linear.x
+        self.ibvs_y_inner = msg.linear.y
+        self.ibvs_F_inner = msg.linear.z
+        self.ibvs_z_inner = msg.angular.z
+
+        # print '\nx_vel:', self.ibvs_x, '\ny_vel:', self.ibvs_y, '\nz_vel:', self.ibvs_F
+
+        # increment the counter
+        self.ibvs_count_inner += 1
+
+        # get the time
+        self.ibvs_time_inner = rospy.get_time()
+
+
     def descend_callback(self, event):
 
         if self.ibvs_active:
             self.descend_slowly += 0.1
             # print(self.descend_slowly)
+
+    def aruco_inner_callback(self, msg):
+
+        self.altitude = msg.pose.position.z
+        print(self.altitude)
 
 
 if __name__ == '__main__':
