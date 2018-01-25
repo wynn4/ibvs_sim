@@ -44,11 +44,6 @@ class LevelFrameMapper(object):
         self.cy = 0.0
         self.f = 0.0
 
-        # visualization params
-        self.show = True
-        shape = (self.img_h, self.img_w, 3)
-        self.level_frame = np.zeros(shape, np.uint8)
-
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
         self.p_des = np.array([-200, -200, 200, -200, 200, 200, -200, 200], dtype=np.float32).reshape(8,1)
@@ -214,42 +209,6 @@ class LevelFrameMapper(object):
         # publish
         self.uv_bar_pub.publish(self.uv_bar_msg)
 
-        if self.show:
-
-            # clear out the frame
-            self.level_frame.fill(0)
-
-            # draw the original pixel coordinates
-            cv2.circle(self.level_frame, (int(corners_undist[0][0]+self.img_w/2.0), int(corners_undist[0][1]+self.img_h/2.0)), 10, (0, 0, 255), 2)
-            cv2.circle(self.level_frame, (int(corners_undist[1][0]+self.img_w/2.0), int(corners_undist[1][1]+self.img_h/2.0)), 10, (0, 0, 255), 2)
-            cv2.circle(self.level_frame, (int(corners_undist[2][0]+self.img_w/2.0), int(corners_undist[2][1]+self.img_h/2.0)), 10, (0, 0, 255), 2)
-            cv2.circle(self.level_frame, (int(corners_undist[3][0]+self.img_w/2.0), int(corners_undist[3][1]+self.img_h/2.0)), 10, (0, 0, 255), 2)
-
-            # draw the level-frame pixel coordinates and desired coordinates
-            cv2.circle(self.level_frame, (int(self.uv_bar_lf[0][0]+self.img_w/2.0), int(self.uv_bar_lf[0][1]+self.img_h/2.0)), 10, (0, 255, 255), 2)
-            cv2.circle(self.level_frame, (int(self.uv_bar_lf[1][0]+self.img_w/2.0), int(self.uv_bar_lf[1][1]+self.img_h/2.0)), 10, (0, 255, 255), 2)
-            cv2.circle(self.level_frame, (int(self.uv_bar_lf[2][0]+self.img_w/2.0), int(self.uv_bar_lf[2][1]+self.img_h/2.0)), 10, (0, 255, 255), 2)
-            cv2.circle(self.level_frame, (int(self.uv_bar_lf[3][0]+self.img_w/2.0), int(self.uv_bar_lf[3][1]+self.img_h/2.0)), 10, (0, 255, 255), 2)
-
-            cv2.circle(self.level_frame, (int(self.p_des[0][0]+self.img_w/2.0), int(self.p_des[1][0]+self.img_h/2.0)), 10, (0, 255, 0), 2)
-            cv2.circle(self.level_frame, (int(self.p_des[2][0]+self.img_w/2.0), int(self.p_des[3][0]+self.img_h/2.0)), 10, (0, 255, 0), 2)
-            cv2.circle(self.level_frame, (int(self.p_des[4][0]+self.img_w/2.0), int(self.p_des[5][0]+self.img_h/2.0)), 10, (0, 255, 0), 2)
-            cv2.circle(self.level_frame, (int(self.p_des[6][0]+self.img_w/2.0), int(self.p_des[7][0]+self.img_h/2.0)), 10, (0, 255, 0), 2)
-
-            cv2.line(self.level_frame, (int(self.uv_bar_lf[0][0]+self.img_w/2.0), int(self.uv_bar_lf[0][1]+self.img_h/2.0)), (int(self.p_des[0][0]+self.img_w/2.0), int(self.p_des[1][0]+self.img_h/2.0)), (255, 0, 0))
-            cv2.line(self.level_frame, (int(self.uv_bar_lf[1][0]+self.img_w/2.0), int(self.uv_bar_lf[1][1]+self.img_h/2.0)), (int(self.p_des[2][0]+self.img_w/2.0), int(self.p_des[3][0]+self.img_h/2.0)), (255, 0, 0))
-            cv2.line(self.level_frame, (int(self.uv_bar_lf[2][0]+self.img_w/2.0), int(self.uv_bar_lf[2][1]+self.img_h/2.0)), (int(self.p_des[4][0]+self.img_w/2.0), int(self.p_des[5][0]+self.img_h/2.0)), (255, 0, 0))
-            cv2.line(self.level_frame, (int(self.uv_bar_lf[3][0]+self.img_w/2.0), int(self.uv_bar_lf[3][1]+self.img_h/2.0)), (int(self.p_des[6][0]+self.img_w/2.0), int(self.p_des[7][0]+self.img_h/2.0)), (255, 0, 0))
-
-            # add some text labels
-            cv2.putText(self.level_frame, "Camera Frame",(100,25),cv2.FONT_HERSHEY_PLAIN,2.0,(0,0,255),2)
-            cv2.putText(self.level_frame, "Virtual Level Frame",(100,55),cv2.FONT_HERSHEY_PLAIN,2.0,(0,255,255),2)
-            cv2.putText(self.level_frame, "Desired Pixel Coordinates (VLF)",(100,85),cv2.FONT_HERSHEY_PLAIN,2.0,(0,255,0),2)
-
-            # display the image
-            cv2.imshow("level_frame_image", self.level_frame)
-            cv2.waitKey(1)
-
         # elapsed = time.time() - t
         # hz_approx = 1.0/elapsed
         # print(hz_approx)
@@ -311,8 +270,7 @@ def main():
         print("Shutting down")
 
     # OpenCV cleanup
-    if mapper.show:
-        cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main()
