@@ -1,0 +1,158 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="quadcopter_name"     default="quadcopter"/>
+  <arg name="color"               default="White"/>
+  <arg name="x"                   default="0"/>
+  <arg name="y"                   default="0"/>
+  <arg name="z"                   default="0.1"/>
+  <arg name="yaw"                 default="0"/>
+
+  <arg name="aruco_name"          default="aruco_marker"/>
+  <arg name="x2"                  default="9"/>
+  <arg name="y2"                  default="-9"/>
+  <arg name="z2"                  default="0"/>
+
+  <arg name="debug"               default="false"/>
+
+  <!-- ArUco args -->
+  <arg name="show_camera" default="false" />
+  <arg name="show_aruco_detections" default="true" />
+
+  <!-- Start Simulator -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="paused" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="verbose" value="false"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+  <!-- Spawn Models in Gazebo -->
+  <include file="$(find ibvs_sim)/launch/two_agent_spawn.launch">
+    <arg name="agent_1_name"        value="$(arg quadcopter_name)" />
+    <arg name="model"               value="$(find ibvs_sim)/agents/quadcopter/$(arg quadcopter_name).urdf.xacro" />
+    <arg name="x"                   value="$(arg x)"/>
+    <arg name="y"                   value="$(arg y)"/>
+    <arg name="z"                   value="$(arg z)"/>
+    <arg name="yaw"                 value="$(arg yaw)"/>
+    <arg name="color"               value="$(arg color)"/>
+
+    <arg name="agent_2_name"        value="$(arg aruco_name)" />
+    <arg name="model2"              value="$(find ibvs_sim)/agents/aruco/aruco_only.xacro" />
+    <arg name="x2"                  value="$(arg x2)"/>
+    <arg name="y2"                  value="$(arg y2)"/>
+    <arg name="z2"                  value="$(arg z2)"/>
+  </include>
+
+  <!-- Controller -->
+  <group ns="$(arg quadcopter_name)">
+
+    <!-- Load common parameters -->
+    <rosparam command="load" file="$(find ibvs_sim)/params/$(arg quadcopter_name).yaml"/>
+
+    <!-- Is Flying Publisher -->
+    <node pkg="rostopic" type="rostopic" name="is_flying_pub" args="pub is_flying std_msgs/Bool true"/>
+
+    <!-- Status Publisher -->
+    <node pkg="rostopic" type="rostopic" name="status_pub" args="pub -r 1 status rosflight_msgs/Status '{armed: true, failsafe: false, rc_override: false, offboard: true, error_code: 0, num_errors: 0, loop_time_us: 1}'"/>
+
+    <!-- State Estimator -->
+    <node pkg="roscopter" type="mekf" name="mekf" output="screen">
+      <remap from="baro" to="baro/data"/>
+      <remap from="sonar" to="sonar/data"/>
+      <remap from="magnetometer" to="mag/data"/>
+    </node>
+
+    <!-- PID Position Controller -->
+    <node name="controller" pkg="ibvs_sim" type="controller.py" output="screen">
+      <remap from="estimate" to="ground_truth/odometry/NED"/>
+      <remap from="estimate" to="estimate"/>
+    </node>
+
+    <!-- Waypoint Manager -->
+    <node name="waypoint_manager" pkg="ibvs_sim" type="ibvs_waypoint_manager.py" output="screen">
+      <remap from="waypoint" to="high_level_command"/>
+      <remap from="state" to="ground_truth/odometry/NED"/>
+      <remap from="state" to="estimate"/>
+    </node>
+
+    <!-- plot states -->
+    <node pkg="roscopter" type="states_plotter.py" name="states_plotter" output="screen">
+      <param name="time_window" value="10.0"/>
+    </node>
+
+  </group>
+
+
+  <!-- ........ -->
+  <!-- IBVS_SIM -->
+  <!-- ........ -->
+
+  <!-- Level-frame mappers -->
+  <!-- outer marker -->
+  <node pkg="ibvs_sim" type="level_frame_mapper.py" name="level_frame_mapper_outer" output="screen">
+    <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/>
+  </node>
+  <!-- inner marker -->
+  <node pkg="ibvs_sim" type="level_frame_mapper.py" name="level_frame_mapper_inner" output="screen">
+    <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/>
+    <remap from="/aruco/marker_corners" to="/aruco_inner/marker_corners"/>
+    <remap from="/ibvs/uv_bar_lf" to="/ibvs/uv_bar_lf_inner"/>
+  </node>
+
+  <!-- IBVS -->
+  <node pkg="ibvs_sim" type="ibvs.py" name="ibvs" output="screen" />
+
+  <node pkg="ibvs_sim" type="ibvs_inner.py" name="ibvs_inner" output="screen">
+    <remap from="/ibvs/uv_bar_lf" to="/ibvs/uv_bar_lf_inner"/>
+    <remap from="/aruco/estimate" to="/aruco_inner/estimate"/>
+    <remap from="/ibvs/vel_cmd" to="/ibvs_inner/vel_cmd"/>
+  </node>
+
+  <!-- Level-frame visualizer -->
+  <node pkg="ibvs_sim" type="level_frame_visualizer.py" name="level_frame_visualizer" output="screen" />
+
+
+  <!-- ..... -->
+  <!-- ArUco -->
+  <!-- ..... -->
+
+  <!-- ArUco Localization -->
+  <node pkg="aruco_localization" type="aruco_localization" name="aruco" output="screen">
+    <param name="show_output_video" value="$(arg show_aruco_detections)" />
+    <param name="markermap_config" value="$(find ibvs_sim)/params/marker_166.yaml" />
+    <!-- <param name="marker_size" value="0.1760" /> -->
+    <param name="marker_size" value="0.7071" />
+
+    <param name="debug_save_input_frames" value="false" />
+    <param name="debug_save_output_frames" value="false" />
+    <param name="debug_image_path" value="/tmp/arucoimages" />
+
+    <remap from="input_image" to="/quadcopter/camera/rgb" />
+    <remap from="output_image" to="aruco/image" />
+  </node>
+
+  <!-- ArUco Localization -->
+  <node pkg="aruco_localization" type="aruco_localization" name="aruco_inner" output="screen">
+    <param name="show_output_video" value="$(arg show_aruco_detections)" />
+    <param name="markermap_config" value="$(find ibvs_sim)/params/marker_104.yaml" />
+    <!-- <param name="marker_size" value="0.1760" /> -->
+    <param name="marker_size" value="0.076" />
+
+    <param name="debug_save_input_frames" value="false" />
+    <param name="debug_save_output_frames" value="false" />
+    <param name="debug_image_path" value="/tmp/arucoimages" />
+
+    <remap from="input_image" to="/quadcopter/camera/rgb" />
+    <remap from="output_image" to="aruco_inner/image" />
+  </node>
+
+
+
+  <group if="$(arg show_camera)">
+    <node name="image_view" pkg="image_view" type="image_view" respawn="false" output="screen">
+      <remap from="image" to="/quadcopter/camera/rgb"/>
+      <param name="autosize" value="true" />
+    </node>
+  </group>
+
+</launch>
