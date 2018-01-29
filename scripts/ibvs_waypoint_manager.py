@@ -132,7 +132,7 @@ class WaypointManager():
             if self.ibvs_count_inner > 30:
 
                 # in this case we enter an open-loop drop onto the marker
-                if self.altitude < 1.0:
+                if self.altitude < 1.0 and self.altitude > 0.1:
                     # freeze the counters
                     self.counters_frozen = True
                     ibvs_command_msg = Command()
