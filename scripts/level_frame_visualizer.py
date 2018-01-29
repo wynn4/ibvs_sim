@@ -5,13 +5,16 @@
 ## JSW Jan 2018
 
 import rospy
+from std_msgs.msg import Bool
 from sensor_msgs.msg import CameraInfo
 from nav_msgs.msg import Odometry
 from aruco_localization.msg import FloatList
 import numpy as np
+import scipy.io
 import cv2
 import tf
 import time
+from os import path
 
 
 class LevelFrameVisualizer(object):
@@ -37,9 +40,17 @@ class LevelFrameVisualizer(object):
         self.f = 0.0
 
         # visualization params
-        self.show = True
+        self.show = rospy.get_param('~show', False)
         shape = (self.img_h, self.img_w, 3)
         self.level_frame = np.zeros(shape, np.uint8)
+
+        # plotting params
+        self.save_data = rospy.get_param('~save_data', False)
+        file_str = rospy.get_param('~filename', 'Desktop/data.mat')
+        self.outfile_str = path.expanduser('~/') + file_str
+        self.error_data = np.zeros((1000,5))
+        self.ibvs_active = False
+        self.line_count = 0
 
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
@@ -53,6 +64,7 @@ class LevelFrameVisualizer(object):
         self.uv_bar_sub = rospy.Subscriber('/ibvs/uv_bar_lf', FloatList, self.level_frame_corners_callback)
         self.corner_pix_sub = rospy.Subscriber('/aruco/marker_corners', FloatList, self.corners_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
+        self.ibvs_active_sub = rospy.Subscriber('/quadcopter/ibvs_active', Bool, self.ibvs_active_callback)
 
 
     def level_frame_corners_callback(self, msg):
@@ -80,6 +92,62 @@ class LevelFrameVisualizer(object):
         # print "uv_bar_cam: "
         # print(corners_undist)
         # print "\n"
+
+        if self.save_data and self.ibvs_active:
+
+            # desired pixel locations
+            p1_des = np.array([[self.p_des[0][0]],[self.p_des[1][0]]])
+            # u1_des = self.p_des[0][0]
+            # v1_des = self.p_des[1][0]
+
+            p2_des = np.array([[self.p_des[2][0]],[self.p_des[3][0]]])
+            # u2_des = self.p_des[2][0]
+            # v2_des = self.p_des[3][0]
+
+            p3_des = np.array([[self.p_des[4][0]],[self.p_des[5][0]]])
+            # u3_des = self.p_des[4][0]
+            # v3_des = self.p_des[5][0]
+
+            p4_des = np.array([[self.p_des[6][0]],[self.p_des[7][0]]])
+            # u4_des = self.p_des[6][0]
+            # v4_des = self.p_des[7][0]
+
+            # current pixel locations
+            p1 = np.array([[msg.data[0]],[msg.data[1]]])
+            # u1= msg.data[0]   # u1
+            # v1= msg.data[1]   # v1
+
+            p2 = np.array([[msg.data[2]],[msg.data[3]]])
+            # u2= msg.data[2]   # u2
+            # v2= msg.data[3]   # v2
+
+            p3 = np.array([[msg.data[4]],[msg.data[5]]])
+            # u3= msg.data[4]   # u3
+            # v3= msg.data[5]   # v3
+
+            p4 = np.array([[msg.data[6]],[msg.data[7]]])
+            # u4= msg.data[6]   # u4
+            # v4= msg.data[7]   # v4
+
+            # Calculate the error(s) as the L2 norm
+            e1 = np.linalg.norm(p1_des - p1)
+            e2 = np.linalg.norm(p2_des - p2)
+            e3 = np.linalg.norm(p3_des - p3)
+            e4 = np.linalg.norm(p4_des - p4)
+
+            time = rospy.get_time()
+            # print(time)
+
+            # add a new line to the data matrix
+            self.error_data[self.line_count][0] = time
+            self.error_data[self.line_count][1] = e1
+            self.error_data[self.line_count][2] = e2
+            self.error_data[self.line_count][3] = e3
+            self.error_data[self.line_count][4] = e4
+
+            # increment
+            self.line_count += 1
+
 
         if self.show:
 
@@ -159,6 +227,11 @@ class LevelFrameVisualizer(object):
         print("Level_frame_visualizer: Got camera info!")
 
 
+    def ibvs_active_callback(self, msg):
+        
+        self.ibvs_active = msg.data
+
+
 
 
 def main():
@@ -177,6 +250,11 @@ def main():
     # OpenCV cleanup
     if visualizer.show:
         cv2.destroyAllWindows()
+
+    # Save off the data file
+    if visualizer.save_data:
+        scipy.io.savemat(visualizer.outfile_str, mdict={'arr': visualizer.error_data})
+
 
 if __name__ == '__main__':
     main()
