@@ -69,15 +69,15 @@
 
     <!-- PID Position Controller -->
     <node name="controller" pkg="ibvs_sim" type="controller.py" output="screen">
-      <remap from="estimate" to="ground_truth/odometry/NED"/>
-      <!-- <remap from="estimate" to="estimate"/> -->
+      <!-- <remap from="estimate" to="ground_truth/odometry/NED"/> -->
+      <remap from="estimate" to="estimate"/>
     </node>
 
     <!-- Waypoint Manager -->
     <node name="waypoint_manager" pkg="ibvs_sim" type="ibvs_waypoint_manager.py" output="screen">
       <remap from="waypoint" to="high_level_command"/>
-      <remap from="state" to="ground_truth/odometry/NED"/>
-      <!-- <remap from="state" to="estimate"/> -->
+      <!-- <remap from="state" to="ground_truth/odometry/NED"/> -->
+      <remap from="state" to="estimate"/>
     </node>
 
     <!-- plot states -->
@@ -126,6 +126,11 @@
     <remap from="input_image" to="/quadcopter/camera/rgb" />
     <remap from="output_image" to="aruco/image" />
   </node>
+
+  <!-- ...... -->
+  <!-- ROSBAG -->
+  <!-- ...... -->
+  <!-- <node name="record" pkg="rosbag" type="record" args="/quadcopter/ground_truth/odometry/NED /boat/odometry/NED /quadcopter/euler /boat/euler -o boat_copter_states" output="screen"/> -->
 
   <group if="$(arg show)">
     <node name="image_view" pkg="image_view" type="image_view" respawn="false" output="screen">
