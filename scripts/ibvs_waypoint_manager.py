@@ -31,7 +31,7 @@ class WaypointManager():
         self.ibvs_z = 0.0
 
         self.ibvs_count = 0
-        self.ibvs_time = rospy.get_time()
+        self.ibvs_time = rospy.get_time() - 10.0
         self.ibvs_active = False
 
         # inner
@@ -41,7 +41,7 @@ class WaypointManager():
         self.ibvs_z_inner = 0.0
 
         self.ibvs_count_inner = 0
-        self.ibvs_time_inner = rospy.get_time()
+        self.ibvs_time_inner = rospy.get_time() - 10.0
         self.ibvs_active_inner = False
 
         self.counters_frozen = False
@@ -113,20 +113,15 @@ class WaypointManager():
         self.ibvs_active_pub_.publish(self.ibvs_active_msg)
 
         # reset the ibvs counter if we haven't seen the ArUco for more than 1 second
-        if time_cur - self.ibvs_time >= 1.0 and self.counters_frozen == False:
+        if time_cur - self.ibvs_time >= 1.0 and time_cur - self.ibvs_time_inner >= 1.0 and self.counters_frozen == False:
             self.ibvs_count = 0
-            self.ibvs_active = False
-            self.ibvs_active_msg.data = False
-            # print "ibvs counter reset..."
-
-        if time_cur - self.ibvs_time_inner >= 1.0 and self.counters_frozen == False:
             self.ibvs_count_inner = 0
+            self.ibvs_active_msg.data = False
+            print "reset"
 
         # if the ArUco has been in sight for a while
         if self.ibvs_count > 100 or self.ibvs_count_inner > 30:
             
-            # print "ibvs active!"
-            self.ibvs_active = True
             self.ibvs_active_msg.data = True
 
             if self.ibvs_count_inner > 30:

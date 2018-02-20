@@ -216,8 +216,6 @@ class ImageBasedVisualServoing(object):
 
             return
 
-
-        
         # all we need is distance to the ArUco, z_c
         z_c = msg.pose.position.z
 
