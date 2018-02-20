@@ -29,7 +29,8 @@ class TestMAVROS(object):
                                   [0., 0., -1.]])
 
         # Create a maks of PositionTarget msg fields we wish to ignore.
-        # Here we have 'OR'ed together all of the fields we don't want.
+        # Here we have 'OR'ed together all of the fields we don't want
+        # (i.e., we want x-vel, y-vel, z-vel, yawrate).
         self.ignore_mask = (PositionTarget.IGNORE_PX
                             | PositionTarget.IGNORE_PY
                             | PositionTarget.IGNORE_PZ
@@ -66,7 +67,8 @@ class TestMAVROS(object):
 
         # Fill out the message.
         command_msg.header.stamp = rospy.get_rostime()
-        command_msg.coordinate_frame = 1    # CHANGE THIS LATER!!!
+        # FRAME_BODY_NED is the vehicle-1 frame
+        command_msg.coordinate_frame = command_msg.FRAME_BODY_NED
         command_msg.type_mask = self.ignore_mask
 
         command_msg.velocity.x = enu_vec[0][0]
