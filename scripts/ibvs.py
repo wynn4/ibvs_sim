@@ -13,6 +13,7 @@ import rospy
 from sensor_msgs.msg import CameraInfo
 from nav_msgs.msg import Odometry
 from aruco_localization.msg import FloatList
+from std_msgs.msg import Float32
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Twist
 import numpy as np
@@ -20,15 +21,13 @@ import cv2
 import tf
 import time
 
-# TODO:
-# -add approximate distance calculation (for when ArUco NaNs)
-
 
 class ImageBasedVisualServoing(object):
 
     def __init__(self):
 
         # load ROS params
+        p_des = rospy.get_param('~p_des', [0., 0., 0., 0., 0., 0., 0., 0.])
 
         ## initialize other class variables
 
@@ -75,7 +74,7 @@ class ImageBasedVisualServoing(object):
 
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
-        self.p_des = np.array([-200, -200, 200, -200, 200, 200, -200, 200], dtype=np.float32).reshape(8,1)  # 8x1
+        self.p_des = np.array(p_des, dtype=np.float32).reshape(8,1)  # 8x1
 
         # rotation from the virtual level frame to the vehicle 1 frame
         self.R_vlc_v1 = np.array([[0., -1., 0.],
@@ -93,7 +92,7 @@ class ImageBasedVisualServoing(object):
 
         # initialize subscribers
         self.uv_bar_sub = rospy.Subscriber('/ibvs/uv_bar_lf', FloatList, self.level_frame_corners_callback)
-        self.aruco_sub = rospy.Subscriber('/aruco/estimate', PoseStamped, self.aruco_callback)
+        self.aruco_sub = rospy.Subscriber('/aruco/distance', Float32, self.aruco_distance_callback)
         self.attitude_sub = rospy.Subscriber('/quadcopter/estimate', Odometry, self.altitude_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
 
@@ -104,6 +103,9 @@ class ImageBasedVisualServoing(object):
     def level_frame_corners_callback(self, msg):
 
         # t = time.time()
+
+        # compute z_c according to eq(15)
+        # z_c = self.compute_dist(msg.data)
 
         # formulate image Jacobians according to eq(5)
         u1 = msg.data[0]
@@ -167,22 +169,29 @@ class ImageBasedVisualServoing(object):
         # publish
         self.vel_cmd_pub.publish(self.vel_cmd_msg)
 
+
+    def compute_dist(self, corners):
+
+        # This function included for completeness but in reality, I'm computing this same thing in 
+        # ArucoLocalizer.cpp and using that instead.
+
+        # get the distance in pixels between each of the corners
+        Ls_1_2 = np.linalg.norm(np.array([[corners[0]],[corners[1]]]) - np.array([[corners[2]],[corners[3]]]))
+        Ls_2_3 = np.linalg.norm(np.array([[corners[2]],[corners[3]]]) - np.array([[corners[4]],[corners[5]]]))
+        Ls_3_4 = np.linalg.norm(np.array([[corners[4]],[corners[5]]]) - np.array([[corners[6]],[corners[7]]]))
+        Ls_4_1 = np.linalg.norm(np.array([[corners[6]],[corners[7]]]) - np.array([[corners[0]],[corners[1]]]))
+
+        # take the average
+        Ls = (Ls_1_2 + Ls_2_3 + Ls_3_4 + Ls_4_1) / 4.0
+
+        # compute distance to the target z_c (eq 15)
+        z_c = (self.Lc * self.f) / Ls
+
+        return z_c
+
         
     def altitude_callback(self, msg):
 
-        # get the quaternion orientation from the message
-        # quaternion = (
-        #     msg.pose.pose.orientation.x,
-        #     msg.pose.pose.orientation.y,
-        #     msg.pose.pose.orientation.z,
-        #     msg.pose.pose.orientation.w)
-
-        # # convert to euler angles 
-        # euler = tf.transformations.euler_from_quaternion(quaternion)
-
-        # # update class variables
-        # self.phi = euler[0]
-        # self.theta = euler[1]
         self.altitude = -msg.pose.pose.position.z
 
 
@@ -204,10 +213,10 @@ class ImageBasedVisualServoing(object):
         print("IBVS: Got camera info!")
 
 
-    def aruco_callback(self, msg):
+    def aruco_distance_callback(self, msg):
 
-        # check for NaNs coming from ArUco estimate
-        if np.isnan(msg.pose.position.z):
+        # check for NaNs coming from ArUco distance
+        if np.isnan(msg.data):
             # print "Nan!"
             z_c = self.altitude
 
@@ -219,7 +228,7 @@ class ImageBasedVisualServoing(object):
             return
 
         # all we need is distance to the ArUco, z_c
-        z_c = msg.pose.position.z
+        z_c = msg.data
 
         if z_c >= 3.0 and self.inverse_method == False:
             self.z_c = 3.0
@@ -236,8 +245,6 @@ class ImageBasedVisualServoing(object):
             rVal = x
 
         return rVal
-
-
 
 
 def main():
