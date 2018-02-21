@@ -11,6 +11,9 @@ from geometry_msgs.msg import PoseStamped
 from rosflight_msgs.msg import Command
 from roscopter_msgs.srv import AddWaypoint, RemoveWaypoint, SetWaypointsFromFile
 
+# TODO:
+# -add approximate distance calculation (for when ArUco NaNs)
+
 
 class WaypointManager():
 

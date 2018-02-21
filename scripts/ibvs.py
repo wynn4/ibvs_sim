@@ -20,6 +20,9 @@ import cv2
 import tf
 import time
 
+# TODO:
+# -add approximate distance calculation (for when ArUco NaNs)
+
 
 class ImageBasedVisualServoing(object):
 
