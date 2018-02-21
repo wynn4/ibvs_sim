@@ -107,30 +107,33 @@
   <!-- IBVS_SIM -->
   <!-- ........ -->
 
+  <!-- Load IBVS parameters -->
+  <rosparam command="load" file="$(find ibvs_sim)/params/ibvs.yaml"/>
+
   <!-- Level-frame mappers -->
   <!-- outer marker -->
-  <node pkg="ibvs_sim" type="level_frame_mapper.py" name="level_frame_mapper_outer" output="screen">
+  <node name="level_frame_mapper_outer" pkg="ibvs_sim" type="level_frame_mapper.py" output="screen">
     <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/>
   </node>
   <!-- inner marker -->
-  <node pkg="ibvs_sim" type="level_frame_mapper.py" name="level_frame_mapper_inner" output="screen">
+  <node name="level_frame_mapper_inner" pkg="ibvs_sim" type="level_frame_mapper.py" output="screen">
     <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/>
     <remap from="/aruco/marker_corners" to="/aruco_inner/marker_corners"/>
     <remap from="/ibvs/uv_bar_lf" to="/ibvs/uv_bar_lf_inner"/>
   </node>
 
   <!-- IBVS -->
-  <node pkg="ibvs_sim" type="ibvs.py" name="ibvs" output="screen" />
+  <node name="ibvs" pkg="ibvs_sim" type="ibvs.py" output="screen"/>
 
-  <node pkg="ibvs_sim" type="ibvs_inner.py" name="ibvs_inner" output="screen">
+  <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs.py" output="screen">
     <remap from="/ibvs/uv_bar_lf" to="/ibvs/uv_bar_lf_inner"/>
-    <remap from="/aruco/estimate" to="/aruco_inner/estimate"/>
+    <remap from="/aruco/distance" to="/aruco_inner/distance"/>
     <remap from="/ibvs/vel_cmd" to="/ibvs_inner/vel_cmd"/>
   </node>
 
   <!-- Level-frame visualizer -->
-  <node pkg="ibvs_sim" type="level_frame_visualizer.py" name="level_frame_visualizer" output="screen" />
-
+  <!-- <node name="level_frame_visualizer" pkg="ibvs_sim" type="level_frame_visualizer.py" output="screen"/> -->
+  
 
   <!-- ..... -->
   <!-- ArUco -->
