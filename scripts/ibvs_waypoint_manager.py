@@ -5,6 +5,7 @@ import numpy as np
 import rospy, tf
 
 from std_msgs.msg import Bool
+from std_msgs.msg import Float32
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseStamped
@@ -48,7 +49,7 @@ class WaypointManager():
         self.ibvs_active_inner = False
 
         self.counters_frozen = False
-        self.altitude = 10.0
+        self.distance = 10.0
 
 
         self.descend_slowly = -15.0  # start at 5 meters above ground
@@ -71,7 +72,7 @@ class WaypointManager():
         self.xhat_sub_ = rospy.Subscriber('state', Odometry, self.odometryCallback, queue_size=5)
         self.ibvs_sub = rospy.Subscriber('/ibvs/vel_cmd', Twist, self.ibvs_velocity_cmd_callback, queue_size=1)
         self.ibvs_inner_sub = rospy.Subscriber('/ibvs_inner/vel_cmd', Twist, self.ibvs_velocity_cmd_inner_callback, queue_size=1)
-        self.aruco_sub = rospy.Subscriber('/aruco_inner/estimate', PoseStamped, self.aruco_inner_callback)
+        self.aruco_sub = rospy.Subscriber('/aruco_inner/distance', Float32, self.aruco_inner_distance_callback)
         self.waypoint_pub_ = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
         self.ibvs_active_pub_ = rospy.Publisher('ibvs_active', Bool, queue_size=1)
 
@@ -120,7 +121,7 @@ class WaypointManager():
             self.ibvs_count = 0
             self.ibvs_count_inner = 0
             self.ibvs_active_msg.data = False
-            print "reset"
+            # print "reset"
 
         # if the ArUco has been in sight for a while
         if self.ibvs_count > 100 or self.ibvs_count_inner > 30:
@@ -130,7 +131,7 @@ class WaypointManager():
             if self.ibvs_count_inner > 30:
 
                 # in this case we enter an open-loop drop onto the marker
-                if self.altitude < 1.0 and self.altitude > 0.1:
+                if self.distance < 1.0 and self.distance > 0.1:
                     # freeze the counters
                     self.counters_frozen = True
                     ibvs_command_msg = Command()
@@ -241,10 +242,10 @@ class WaypointManager():
             self.descend_slowly += 0.1
             # print(self.descend_slowly)
 
-    def aruco_inner_callback(self, msg):
+    def aruco_inner_distance_callback(self, msg):
 
-        self.altitude = msg.pose.position.z
-        print(self.altitude)
+        self.distance = msg.data
+        # print(self.distance)
 
 
 if __name__ == '__main__':
