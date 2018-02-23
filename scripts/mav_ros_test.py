@@ -75,7 +75,7 @@ class TestMAVROS(object):
         command_msg.velocity.y = enu_vec[1][0]
         command_msg.velocity.z = enu_vec[2][0]
 
-        command_msg.yaw_rate = self.yaw_rate
+        command_msg.yaw_rate = -self.yaw_rate
 
         # Publish the message.
         self.command_pub.publish(command_msg)
