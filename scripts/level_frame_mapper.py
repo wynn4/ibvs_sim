@@ -229,6 +229,8 @@ class LevelFrameMapper(object):
         # update class variables
         self.phi = euler[0]
         self.theta = euler[1]
+        # print "roll: " + str(np.degrees(euler[0]))
+        # print "pitch: " + str(np.degrees(euler[1]))
 
 
     def camera_info_callback(self, msg):
