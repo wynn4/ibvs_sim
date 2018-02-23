@@ -6,6 +6,7 @@
 import rospy
 from mavros_msgs.msg import PositionTarget
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import TwistStamped
 from geometry_msgs.msg import Vector3Stamped
 from nav_msgs.msg import Odometry
 import numpy as np
@@ -20,8 +21,12 @@ class MavrosNED(object):
 
         # Initialize other class variables.
         self.px4_estimate_msg = Odometry()
+
+        # vectors to hold data coming from mavros
         self.euler_vec_flu = np.zeros((3,1), dtype=np.float32)
         self.position_vec_enu = np.zeros((3,1), dtype=np.float32)
+        self.velocity_vec_lin_flu = np.zeros((3,1), dtype=np.float32)
+        self.velocity_vec_ang_flu = np.zeros((3,1), dtype=np.float32)
         
 
         # Initialize rotation from body FLU to FRD.
@@ -34,8 +39,11 @@ class MavrosNED(object):
                                    [1., 0., 0.],
                                    [0., 0., -1.]])
 
+        # vectors to hold ned data to be published
         self.quaternion_frd = np.array([0, 0, 0, 1], dtype=np.float32)
-        self.position_vec_ned = np.array([[0],[0],[0]], dtype=np.float32)
+        self.position_vec_ned = np.zeros((3,1), dtype=np.float32)
+        self.velocity_vec_lin_frd = np.zeros((3,1), dtype=np.float32)
+        self.velocity_vec_ang_frd = np.zeros((3,1), dtype=np.float32)
 
         # self.cb_time = rospy.get_time()
         
@@ -45,6 +53,7 @@ class MavrosNED(object):
 
         # Initialize subscribers
         self.pose_sub = rospy.Subscriber('/mavros/local_position/pose', PoseStamped, self.mavros_pose_callback)
+        self.vel_sub = rospy.Subscriber('/mavros/local_position/velocity', TwistStamped, self.mavros_velocity_callback)
 
         # Initialize publisher
         self.estimate_pub = rospy.Publisher("mavros_ned/estimate", Odometry, queue_size=1)
@@ -52,6 +61,7 @@ class MavrosNED(object):
 
     def send_ned_estimate(self, event):
 
+        # fill out the message and publish
         self.px4_estimate_msg.header.stamp = rospy.Time.now()
         self.px4_estimate_msg.pose.pose.position.x = self.position_vec_ned[0][0]
         self.px4_estimate_msg.pose.pose.position.y = self.position_vec_ned[1][0]
@@ -61,6 +71,14 @@ class MavrosNED(object):
         self.px4_estimate_msg.pose.pose.orientation.y = self.quaternion_frd[1]
         self.px4_estimate_msg.pose.pose.orientation.z = self.quaternion_frd[2]
         self.px4_estimate_msg.pose.pose.orientation.w = self.quaternion_frd[3]
+
+        self.px4_estimate_msg.twist.twist.linear.x = self.velocity_vec_lin_frd[0][0]
+        self.px4_estimate_msg.twist.twist.linear.y = self.velocity_vec_lin_frd[1][0]
+        self.px4_estimate_msg.twist.twist.linear.z = self.velocity_vec_lin_frd[2][0]
+
+        self.px4_estimate_msg.twist.twist.angular.x = self.velocity_vec_ang_frd[0][0]
+        self.px4_estimate_msg.twist.twist.angular.y = self.velocity_vec_ang_frd[1][0]
+        self.px4_estimate_msg.twist.twist.angular.z = self.velocity_vec_ang_frd[2][0]
 
         self.estimate_pub.publish(self.px4_estimate_msg)
         # now = rospy.get_time()
@@ -104,6 +122,25 @@ class MavrosNED(object):
         # now = rospy.get_time()
         # delay = now - then
         # print(delay)
+
+
+    def mavros_velocity_callback(self, msg):
+
+        # populate flu linear velocity vector
+        self.velocity_vec_lin_flu[0][0] = msg.twist.linear.x
+        self.velocity_vec_lin_flu[1][0] = msg.twist.linear.y
+        self.velocity_vec_lin_flu[2][0] = msg.twist.linear.z
+
+        # rotate from flu to frd and store in class variable for use later
+        self.velocity_vec_lin_frd = self.flu_to_frd(self.velocity_vec_lin_flu)
+
+        # populate flu angular velocity vector
+        self.velocity_vec_ang_flu[0][0] = msg.twist.angular.x
+        self.velocity_vec_ang_flu[1][0] = msg.twist.angular.y
+        self.velocity_vec_ang_flu[2][0] = msg.twist.angular.z
+
+        # rotate from flu to frd and store in class variable for use later
+        self.velocity_vec_ang_frd = self.flu_to_frd(self.velocity_vec_ang_flu)
 
 
     def enu_to_ned(self, enu_vec):
