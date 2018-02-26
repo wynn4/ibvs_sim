@@ -93,6 +93,9 @@
   </node>
 
   <!-- IBVS -->
+  <!-- Load IBVS parameters -->
+  <rosparam command="load" file="$(find ibvs_sim)/params/ibvs.yaml"/>
+
   <node pkg="ibvs_sim" type="ibvs.py" name="ibvs" output="screen" />
 
   <!-- Level-frame visualizer -->
