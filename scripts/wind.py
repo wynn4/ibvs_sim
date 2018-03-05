@@ -15,8 +15,8 @@ class Wind(object):
         # Load ROS params.
 
         # Initialize other class variables.
-        self.wind_x = 5.0
-        self.wind_y = 5.0
+        self.wind_x = 2.12
+        self.wind_y = 2.12
         self.wind_z = 0.0
         
         # Initialize timers.
