@@ -72,7 +72,7 @@ class WaypointManager():
         self.xhat_sub_ = rospy.Subscriber('state', Odometry, self.odometryCallback, queue_size=5)
         self.ibvs_sub = rospy.Subscriber('/ibvs/vel_cmd', Twist, self.ibvs_velocity_cmd_callback, queue_size=1)
         self.ibvs_inner_sub = rospy.Subscriber('/ibvs_inner/vel_cmd', Twist, self.ibvs_velocity_cmd_inner_callback, queue_size=1)
-        self.aruco_sub = rospy.Subscriber('/aruco_inner/distance', Float32, self.aruco_inner_distance_callback)
+        self.aruco_sub = rospy.Subscriber('/aruco/distance_inner', Float32, self.aruco_inner_distance_callback)
         self.waypoint_pub_ = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
         self.ibvs_active_pub_ = rospy.Publisher('ibvs_active', Bool, queue_size=1)
 

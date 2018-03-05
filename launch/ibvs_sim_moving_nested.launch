@@ -114,20 +114,24 @@
   <!-- outer marker -->
   <node name="level_frame_mapper_outer" pkg="ibvs_sim" type="level_frame_mapper.py" output="screen">
     <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/>
+    <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
   </node>
   <!-- inner marker -->
   <node name="level_frame_mapper_inner" pkg="ibvs_sim" type="level_frame_mapper.py" output="screen">
     <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/>
-    <remap from="/aruco/marker_corners" to="/aruco_inner/marker_corners"/>
+    <remap from="/aruco/marker_corners" to="/aruco/marker_corners_inner"/>
     <remap from="/ibvs/uv_bar_lf" to="/ibvs/uv_bar_lf_inner"/>
   </node>
 
   <!-- IBVS -->
-  <node name="ibvs" pkg="ibvs_sim" type="ibvs.py" output="screen"/>
+  <node name="ibvs" pkg="ibvs_sim" type="ibvs.py" output="screen">
+    <remap from="/aruco/distance" to="/aruco/distance_outer"/>
+  </node>
+
 
   <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs.py" output="screen">
     <remap from="/ibvs/uv_bar_lf" to="/ibvs/uv_bar_lf_inner"/>
-    <remap from="/aruco/distance" to="/aruco_inner/distance"/>
+    <remap from="/aruco/distance" to="/aruco/distance_inner"/>
     <remap from="/ibvs/vel_cmd" to="/ibvs_inner/vel_cmd"/>
   </node>
 
@@ -142,9 +146,13 @@
   <!-- ArUco Localization -->
   <node pkg="aruco_localization" type="aruco_localization" name="aruco" output="screen">
     <param name="show_output_video" value="$(arg show_aruco_detections)" />
-    <param name="markermap_config" value="$(find ibvs_sim)/params/marker_166.yaml" />
+    <param name="markermap_config" value="$(find ibvs_sim)/params/nested.yaml" />
     <!-- <param name="marker_size" value="0.1760" /> -->
     <param name="marker_size" value="0.7071" />
+    <param name="marker_size_inner" value="0.076" />
+    <param name="id_outer" value="166" />
+    <param name="id_inner" value="104" />
+
 
     <param name="debug_save_input_frames" value="false" />
     <param name="debug_save_output_frames" value="false" />
@@ -154,20 +162,6 @@
     <remap from="output_image" to="aruco/image" />
   </node>
 
-  <!-- ArUco Localization -->
-  <node pkg="aruco_localization" type="aruco_localization" name="aruco_inner" output="screen">
-    <param name="show_output_video" value="$(arg show_aruco_detections)" />
-    <param name="markermap_config" value="$(find ibvs_sim)/params/marker_104.yaml" />
-    <!-- <param name="marker_size" value="0.1760" /> -->
-    <param name="marker_size" value="0.076" />
-
-    <param name="debug_save_input_frames" value="false" />
-    <param name="debug_save_output_frames" value="false" />
-    <param name="debug_image_path" value="/tmp/arucoimages" />
-
-    <remap from="input_image" to="/quadcopter/camera/rgb" />
-    <remap from="output_image" to="aruco_inner/image" />
-  </node>
 
   <!-- ...... -->
   <!-- ROSBAG -->
