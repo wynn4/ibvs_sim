@@ -27,6 +27,14 @@ class WaypointManager():
             rospy.logfatal('waypoints not set')
             rospy.signal_shutdown('Parameters not set')
 
+        self.u_max = rospy.get_param('~u_max', 0.3)
+        self.v_max = rospy.get_param('~v_max', 0.3)
+        self.w_max = rospy.get_param('~w_max', 0.7)
+
+        self.u_max_inner = rospy.get_param('~u_max_inner', 0.2)
+        self.v_max_inner = rospy.get_param('~v_max_inner', 0.2)
+        self.w_max_inner = rospy.get_param('~w_max_inner', 0.2)
+
         # ibvs parameters
         # outer
         self.ibvs_x = 0.0
@@ -144,9 +152,9 @@ class WaypointManager():
                     # stuff
                 else:
                     ibvs_command_msg = Command()
-                    ibvs_command_msg.x = self.saturate(self.ibvs_x_inner, 0.1, -0.1)
-                    ibvs_command_msg.y = self.saturate(self.ibvs_y_inner, 0.1, -0.1)
-                    ibvs_command_msg.F = self.saturate(self.ibvs_F_inner, 0.2, -0.2)
+                    ibvs_command_msg.x = self.saturate(self.ibvs_x_inner, self.u_max_inner, -self.u_max_inner)
+                    ibvs_command_msg.y = self.saturate(self.ibvs_y_inner, self.v_max_inner, -self.v_max_inner)
+                    ibvs_command_msg.F = self.saturate(self.ibvs_F_inner, self.w_max_inner, -self.w_max_inner)
                     ibvs_command_msg.z = self.ibvs_z_inner
                     ibvs_command_msg.mode = Command.MODE_XVEL_YVEL_YAWRATE_ALTITUDE
                     self.waypoint_pub_.publish(ibvs_command_msg)
@@ -155,9 +163,9 @@ class WaypointManager():
                         self.ibvs_count_inner = 31  # reset so it doesn't get too big
             else:
                 ibvs_command_msg = Command()
-                ibvs_command_msg.x = self.ibvs_x
-                ibvs_command_msg.y = self.ibvs_y
-                ibvs_command_msg.F = self.ibvs_F
+                ibvs_command_msg.x = self.saturate(self.ibvs_x, self.u_max, -self.u_max)
+                ibvs_command_msg.y = self.saturate(self.ibvs_y, self.v_max, -self.v_max)
+                ibvs_command_msg.F = self.saturate(self.ibvs_F, self.w_max, -self.w_max)
                 # ibvs_command_msg.F = self.descend_slowly  # :)
                 ibvs_command_msg.z = self.ibvs_z
                 ibvs_command_msg.mode = Command.MODE_XVEL_YVEL_YAWRATE_ALTITUDE
