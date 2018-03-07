@@ -144,9 +144,9 @@ class WaypointManager():
                     # stuff
                 else:
                     ibvs_command_msg = Command()
-                    ibvs_command_msg.x = self.ibvs_x_inner
-                    ibvs_command_msg.y = self.ibvs_y_inner
-                    ibvs_command_msg.F = self.ibvs_F_inner
+                    ibvs_command_msg.x = self.saturate(self.ibvs_x_inner, 0.1, -0.1)
+                    ibvs_command_msg.y = self.saturate(self.ibvs_y_inner, 0.1, -0.1)
+                    ibvs_command_msg.F = self.saturate(self.ibvs_F_inner, 0.2, -0.2)
                     ibvs_command_msg.z = self.ibvs_z_inner
                     ibvs_command_msg.mode = Command.MODE_XVEL_YVEL_YAWRATE_ALTITUDE
                     self.waypoint_pub_.publish(ibvs_command_msg)
@@ -223,8 +223,10 @@ class WaypointManager():
 
         # pull off the message data
         self.ibvs_x_inner = msg.linear.x
+        # print "vel_x: " + str(msg.linear.x)
         self.ibvs_y_inner = msg.linear.y
         self.ibvs_F_inner = msg.linear.z
+        # print "vel_down: " + str(msg.linear.z)
         self.ibvs_z_inner = msg.angular.z
 
         # print '\nx_vel:', self.ibvs_x, '\ny_vel:', self.ibvs_y, '\nz_vel:', self.ibvs_F
@@ -246,6 +248,19 @@ class WaypointManager():
 
         self.distance = msg.data
         # print(self.distance)
+
+
+    def saturate(self, value, up_limit, low_limit):
+        if(value > up_limit):
+            rVal = up_limit
+        elif(value < low_limit):
+            rVal = low_limit
+        else:
+            rVal = value
+        if (up_limit == None) or (low_limit == None):
+            rVal = value
+
+        return rVal
 
 
 if __name__ == '__main__':
