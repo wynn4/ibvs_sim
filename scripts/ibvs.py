@@ -36,8 +36,8 @@ class ImageBasedVisualServoing(object):
         self.inverse_method = True
 
         # IBVS saturation values
-        self.u_max = 0.2
-        self.v_max = 0.2
+        self.u_max = 1.0
+        self.v_max = 1.0
         self.w_max = 0.7
         self.psidot_max = np.radians(45.0)
 
