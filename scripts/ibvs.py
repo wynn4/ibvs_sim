@@ -35,10 +35,10 @@ class ImageBasedVisualServoing(object):
         # if set to False, IBVS is computed according to eq. 10 from Lee
         self.inverse_method = True
 
-        # IBVS saturation values
-        self.u_max = 1.0
-        self.v_max = 1.0
-        self.w_max = 0.7
+        # IBVS saturation values (very conservative)
+        self.u_max = 10.0
+        self.v_max = 10.0
+        self.w_max = 7.0
         self.psidot_max = np.radians(45.0)
 
         # image size
