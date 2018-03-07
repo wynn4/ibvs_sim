@@ -48,7 +48,7 @@ class TestMAVROS(object):
         self.count_timer = rospy.Timer(rospy.Duration(1.0/self.count_rate), self.generate_velocities)
 
         # Initialize publisher
-        self.command_pub = rospy.Publisher("mavros/setpoint_raw/local", PositionTarget, queue_size=1)
+        self.command_pub = rospy.Publisher("/mavros/setpoint_raw/local", PositionTarget, queue_size=1)
 
 
     def send_commands(self, event):
