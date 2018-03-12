@@ -52,9 +52,9 @@
     	<param name="v_max" value="0.5" />
     	<param name="w_max" value="0.5" />
 
-    	<param name="wp_N" value="10.0" />
+    	<param name="wp_N" value="0.0" />
     	<param name="wp_E" value="0.0" />
-    	<param name="wp_D" value="-12.0" />
+    	<param name="wp_D" value="-10.0" />
     </node>
 
     <!-- ArUco Localization -->
