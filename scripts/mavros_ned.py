@@ -62,7 +62,7 @@ class MavrosNED(object):
         self.vel_sub = rospy.Subscriber('/mavros/local_position/velocity', TwistStamped, self.mavros_velocity_callback)
 
         # Initialize publisher.
-        self.estimate_pub = rospy.Publisher("mavros_ned/estimate", Odometry, queue_size=1)
+        self.estimate_pub = rospy.Publisher("/mavros_ned/estimate", Odometry, queue_size=1)
 
 
     def send_ned_estimate(self, event):
