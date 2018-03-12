@@ -52,10 +52,6 @@ class MavrosNED(object):
         self.velocity_vec_ang_frd = np.zeros((3,1), dtype=np.float32)
 
         # self.cb_time = rospy.get_time()
-        
-        # Initialize timers.
-        self.update_rate = 29.0
-        self.update_timer = rospy.Timer(rospy.Duration(1.0/self.update_rate), self.send_ned_estimate)
 
         # Initialize subscribers.
         self.pose_sub = rospy.Subscriber('/mavros/local_position/pose', PoseStamped, self.mavros_pose_callback)
@@ -63,6 +59,10 @@ class MavrosNED(object):
 
         # Initialize publisher.
         self.estimate_pub = rospy.Publisher("/mavros_ned/estimate", Odometry, queue_size=1)
+
+        # Initialize timers.
+        self.update_rate = 29.0
+        self.update_timer = rospy.Timer(rospy.Duration(1.0/self.update_rate), self.send_ned_estimate)
 
 
     def send_ned_estimate(self, event):

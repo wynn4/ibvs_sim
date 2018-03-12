@@ -40,15 +40,16 @@ class TestMAVROS(object):
                             | PositionTarget.FORCE
                             | PositionTarget.IGNORE_YAW)
         
-        # Initialize timers.
-        self.update_rate = 20.0
-        self.update_timer = rospy.Timer(rospy.Duration(1.0/self.update_rate), self.send_commands)
 
         self.count_rate = 1.0  # seconds
         self.count_timer = rospy.Timer(rospy.Duration(1.0/self.count_rate), self.generate_velocities)
 
         # Initialize publisher
         self.command_pub = rospy.Publisher("/mavros/setpoint_raw/local", PositionTarget, queue_size=1)
+
+        # Initialize timers.
+        self.update_rate = 20.0
+        self.update_timer = rospy.Timer(rospy.Duration(1.0/self.update_rate), self.send_commands)
 
 
     def send_commands(self, event):

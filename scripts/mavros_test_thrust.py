@@ -28,15 +28,16 @@ class TestMAVROSThrust(object):
                             | AttitudeTarget.IGNORE_YAW_RATE
                             | AttitudeTarget.IGNORE_ATTITUDE)
         
-        # Initialize timers.
-        self.update_rate = 20.0
-        self.update_timer = rospy.Timer(rospy.Duration(1.0/self.update_rate), self.send_commands)
 
         self.count_rate = 1.0  # seconds
         self.count_timer = rospy.Timer(rospy.Duration(1.0/self.count_rate), self.generate_thrusts)
 
         # Initialize publisher
         self.command_pub = rospy.Publisher("/mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=1)
+
+        # Initialize timers.
+        self.update_rate = 20.0
+        self.update_timer = rospy.Timer(rospy.Duration(1.0/self.update_rate), self.send_commands)
 
 
     def send_commands(self, event):
