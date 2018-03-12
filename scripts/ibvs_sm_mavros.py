@@ -30,6 +30,10 @@ class StateMachine():
         self.v_max_inner = rospy.get_param('~v_max_inner', 0.2)
         self.w_max_inner = rospy.get_param('~w_max_inner', 0.2)
 
+        self.wp_N = rospy.get_param('~wp_N', 10.0)
+        self.wp_E = rospy.get_param('~wp_E', 0.0)
+        self.wp_D = rospy.get_param('~wp_D', -15.0)
+
 
         # ibvs parameters
         # outer
@@ -179,9 +183,9 @@ class StateMachine():
             waypoint_command_msg.coordinate_frame = waypoint_command_msg.FRAME_BODY_NED
             waypoint_command_msg.type_mask = self.ned_pos_mask
 
-            waypoint_command_msg.position.x = 0.0  # E
-            waypoint_command_msg.position.x = 10.0  # N
-            waypoint_command_msg.position.x = 15.0  # U
+            waypoint_command_msg.position.x = self.wp_E  # E
+            waypoint_command_msg.position.y = self.wp_N  # N
+            waypoint_command_msg.position.z = -self.wp_D  # U
 
             waypoint_command_msg.yaw = np.radians(90.0)  # Point North?
 
