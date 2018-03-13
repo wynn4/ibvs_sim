@@ -180,7 +180,7 @@ class StateMachine():
             # print "following waypoints"
             waypoint_command_msg = PositionTarget()
             waypoint_command_msg.header.stamp = rospy.get_rostime()
-            waypoint_command_msg.coordinate_frame = waypoint_command_msg.FRAME_BODY_NED
+            waypoint_command_msg.coordinate_frame = waypoint_command_msg.FRAME_LOCAL_NED
             waypoint_command_msg.type_mask = self.ned_pos_mask
 
             waypoint_command_msg.position.x = self.wp_E  # E
