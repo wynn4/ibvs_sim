@@ -42,11 +42,11 @@
     <rosparam command="load" file="$(find ibvs_sim)/params/ibvs.yaml"/>
     <node name="ibvs" pkg="ibvs_sim" type="ibvs.py" output="screen">
         <remap from="/aruco/distance" to="/aruco/distance_outer"/>
+        <remap from="/quadcopter/camera/camera_info" to="/camera_info" />
     </node>
 
     <!-- IBVS State Machine -->
     <node name="ibvs_state_machine" pkg="ibvs_sim" type="ibvs_sm_mavros.py" output="screen" >
-    	<remap from="/quadcopter/camera/camera_info" to="/camera_info" />
 
     	<param name="u_max" value="0.5" />
     	<param name="v_max" value="0.5" />
@@ -63,7 +63,7 @@
         <param name="markermap_config" value="$(find ibvs_sim)/params/nested.yaml" />
         <!-- <param name="marker_size" value="0.1760" /> -->
         <param name="marker_size" value="0.7071" />
-        <param name="marker_size_inner" value="0.076" />
+        <param name="marker_size_inner" value="0.075" />
         <param name="id_outer" value="166" />
         <param name="id_inner" value="104" />
 
