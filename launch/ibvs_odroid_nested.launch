@@ -2,6 +2,10 @@
 	<!-- Launch file for PX4 and IBVS -->
 	<!-- JSW March 2018 -->
 
+    <!-- rosbag args -->
+    <arg name="record_rosbag" default="false" />
+    <arg name="bag_name" default="ibvs" />
+
     <!-- Point Grey Camera Args -->
     <arg name="frame_rate" value="15" />
     <arg name="calibrated" default="true" />
@@ -107,6 +111,11 @@
         <param name="format7_color_coding" value="mono8" />
         <param name="auto_white_balance" value="true" />
     </node>
+
+    <!-- rosbag record -->
+    <group if="$(arg record_rosbag)">
+        <node name="record" pkg="rosbag" type="record" args="/aruco/estimate /camera_info /image_raw -o $(arg bag_name)" />
+    </group>
 
 
 
