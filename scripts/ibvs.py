@@ -39,7 +39,7 @@ class ImageBasedVisualServoing(object):
         self.u_max = 10.0
         self.v_max = 10.0
         self.w_max = 7.0
-        self.psidot_max = np.radians(45.0)
+        self.psidot_max = np.radians(22.5)
 
         # image size
         # TODO get these params automatically
