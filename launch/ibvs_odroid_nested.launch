@@ -14,7 +14,7 @@
     <arg name="show_aruco_detections" default="false" />
 	
     <!-- Launch PX4 pixhawk (taken from mavros px4.launch) -->
-	<arg name="fcu_url" default="/dev/ttyACM0:921600" />
+	<arg name="fcu_url" default="/dev/ttyUSB0:921600" />
 	<arg name="gcs_url" default="" />
 	<arg name="tgt_system" default="1" />
 	<arg name="tgt_component" default="1" />
@@ -114,7 +114,7 @@
 
     <!-- rosbag record -->
     <group if="$(arg record_rosbag)">
-        <node name="record" pkg="rosbag" type="record" args="/aruco/estimate /camera_info /image_raw -o $(arg bag_name)" />
+        <node name="record" pkg="rosbag" type="record" args="/ibvs/uv_bar_lf_inner /ibvs/uv_bar_lf /aruco/marker_corners_outer /aruco/marker_corners_inner /camera_info /image_raw -o $(arg bag_name)" />
     </group>
 
 
