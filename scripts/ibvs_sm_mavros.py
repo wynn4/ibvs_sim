@@ -9,6 +9,7 @@ from std_msgs.msg import Bool
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
 from mavros_msgs.msg import PositionTarget
+from mavros_msgs.srv import SetMode
 import numpy as np
 
 
@@ -57,6 +58,8 @@ class StateMachine():
         self.counters_frozen = False
         self.distance = 10.0
 
+        self.land_mode_sent = False
+
         self.ned_vel_vec_inner = np.array([[0.0],
                                            [0.0],
                                            [0.0]], dtype=np.float32)
@@ -95,8 +98,11 @@ class StateMachine():
         self.ibvs_sub = rospy.Subscriber('/ibvs/vel_cmd', Twist, self.ibvs_velocity_cmd_callback, queue_size=1)
         self.ibvs_inner_sub = rospy.Subscriber('/ibvs_inner/vel_cmd', Twist, self.ibvs_velocity_cmd_inner_callback, queue_size=1)
         self.aruco_sub = rospy.Subscriber('/aruco/distance_inner', Float32, self.aruco_inner_distance_callback)
-        self.command_pub = rospy.Publisher("/mavros/setpoint_raw/local", PositionTarget, queue_size=1)
+        self.command_pub = rospy.Publisher('/mavros/setpoint_raw/local', PositionTarget, queue_size=1)
         self.ibvs_active_pub_ = rospy.Publisher('ibvs_active', Bool, queue_size=1)
+
+        # Set Up Service Proxy
+        self.set_mode_srv = rospy.ServiceProxy('/mavros/set_mode', SetMode)
 
         self.ibvs_active_msg = Bool()
         self.ibvs_active_msg.data = False
@@ -126,10 +132,12 @@ class StateMachine():
 
             if self.ibvs_count_inner > 30:
 
+                print(self.distance)
                 # in this case we enter an open-loop drop onto the marker
-                # if self.distance < 1.0 and self.distance > 0.1:
-                if False:
-                    print "this should never happen right now"
+                if self.distance < 1.0 and self.distance > 0.1 and self.land_mode_sent == False:
+                    
+                    # set the PX4 to land mode
+                    self.execute_landing()
                     # freeze the counters
                     # self.counters_frozen = True
                     # ibvs_command_msg = Command()
@@ -193,10 +201,6 @@ class StateMachine():
             self.command_pub.publish(waypoint_command_msg)
 
 
-
-            
-
-
     def ibvs_velocity_cmd_callback(self, msg):
 
         # fill out the NED velocity vector
@@ -255,6 +259,20 @@ class StateMachine():
 
         self.distance = msg.data
         # print(self.distance)
+
+
+    def execute_landing(self):
+
+        rospy.wait_for_service('/mavros/set_mode')
+        try:
+            isModeChanged = self.set_mode_srv(custom_mode='AUTO.LAND')
+            
+            if isModeChanged:
+                self.land_mode_sent = True
+                print "mode %s sent." % 'AUTO.LAND'
+
+        except rospy.ServiceException, e:
+            print "service call set_mode failed: %s" % e
 
 
     def saturate(self, value, up_limit, low_limit):
