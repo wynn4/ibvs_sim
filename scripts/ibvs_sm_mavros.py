@@ -195,7 +195,7 @@ class StateMachine():
             waypoint_command_msg.position.y = self.wp_N  # N
             waypoint_command_msg.position.z = -self.wp_D  # U
 
-            waypoint_command_msg.yaw = np.radians(90.0)  # Point North?
+            waypoint_command_msg.yaw = np.radians(0.0)  # Point North?
 
             # Publish.
             self.command_pub.publish(waypoint_command_msg)
