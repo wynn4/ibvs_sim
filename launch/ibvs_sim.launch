@@ -90,6 +90,7 @@
   <!-- level-frame mapper -->
   <node pkg="ibvs_sim" type="level_frame_mapper.py" name="level_frame_mapper" output="screen">
     <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/>
+    <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
   </node>
 
   <!-- IBVS -->
@@ -114,6 +115,9 @@
     <param name="markermap_config" value="$(find ibvs_sim)/params/marker_166.yaml" />
     <!-- <param name="marker_size" value="0.1760" /> -->
     <param name="marker_size" value="0.7071" />
+    <param name="marker_size_inner" value="0.076" />
+    <param name="id_outer" value="166" />
+    <param name="id_inner" value="104" />
 
     <param name="debug_save_input_frames" value="false" />
     <param name="debug_save_output_frames" value="false" />
