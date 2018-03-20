@@ -146,12 +146,12 @@
   <!-- ArUco Localization -->
   <node pkg="aruco_localization" type="aruco_localization" name="aruco" output="screen">
     <param name="show_output_video" value="$(arg show_aruco_detections)" />
-    <param name="markermap_config" value="$(find ibvs_sim)/params/nested.yaml" />
+    <param name="markermap_config" value="$(find ibvs_sim)/params/nested148_65.yaml" />
     <!-- <param name="marker_size" value="0.1760" /> -->
     <param name="marker_size" value="0.7071" />
-    <param name="marker_size_inner" value="0.076" />
-    <param name="id_outer" value="166" />
-    <param name="id_inner" value="104" />
+    <param name="marker_size_inner" value="0.125" />
+    <param name="id_outer" value="148" />
+    <param name="id_inner" value="65" />
 
 
     <param name="debug_save_input_frames" value="false" />
