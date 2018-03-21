@@ -80,6 +80,9 @@
     	<param name="wp_N" value="0.0" />
     	<param name="wp_E" value="0.0" />
     	<param name="wp_D" value="-10.0" />
+
+        <param name="count_outer" value="50" />
+        <param name="count_inner" value="20" />
     </node>
 
     <!-- ArUco Localization -->
@@ -114,7 +117,7 @@
 
     <!-- rosbag record -->
     <group if="$(arg record_rosbag)">
-        <node name="record" pkg="rosbag" type="record" args="/ibvs/uv_bar_lf_inner /ibvs/uv_bar_lf /aruco/marker_corners_outer /aruco/marker_corners_inner /camera_info /image_raw -o $(arg bag_name)" />
+        <node name="record" pkg="rosbag" type="record" args="/ibvs/uv_bar_lf_inner /ibvs/uv_bar_lf /aruco/marker_corners_outer /aruco/marker_corners_inner /camera_info /image_raw /aruco/estimate -o $(arg bag_name)" />
     </group>
 
 

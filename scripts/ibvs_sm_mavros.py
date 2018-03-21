@@ -35,6 +35,9 @@ class StateMachine():
         self.wp_E = rospy.get_param('~wp_E', 0.0)
         self.wp_D = rospy.get_param('~wp_D', -15.0)
 
+        self.count_outer_req = rospy.get_param('count_outer', 100)
+        self.count_inner_req = rospy.get_param('count_inner', 30)
+
 
         # ibvs parameters
         # outer
@@ -126,11 +129,11 @@ class StateMachine():
             # print "reset"
 
         # if the ArUco has been in sight for a while
-        if self.ibvs_count > 100 or self.ibvs_count_inner > 30:
+        if self.ibvs_count > self.count_outer_req or self.ibvs_count_inner > self.count_inner_req:
             
             self.ibvs_active_msg.data = True
 
-            if self.ibvs_count_inner > 30:
+            if self.ibvs_count_inner > self.count_inner_req:
 
                 print(self.distance)
                 # in this case we enter an open-loop drop onto the marker
@@ -164,7 +167,7 @@ class StateMachine():
                     self.command_pub.publish(ibvs_command_msg)
 
                     if self.ibvs_count_inner > 1000:
-                        self.ibvs_count_inner = 31  # reset so it doesn't get too big
+                        self.ibvs_count_inner = self.count_inner_req + 1  # reset so it doesn't get too big
             else:
                 ibvs_command_msg = PositionTarget()
                 ibvs_command_msg.header.stamp = rospy.get_rostime()
@@ -181,7 +184,7 @@ class StateMachine():
                 self.command_pub.publish(ibvs_command_msg)
 
                 if self.ibvs_count > 1000:
-                    self.ibvs_count = 101  # reset so it doesn't get too big
+                    self.ibvs_count = self.count_outer_req + 1  # reset so it doesn't get too big
 
         # go back to following regular waypoints    
         else:
