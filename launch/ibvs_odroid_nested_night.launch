@@ -1,5 +1,6 @@
+<?xml version="1.0"?>
 <launch>
-	<!-- Launch file for PX4 and IBVS -->
+	<!-- Launch file for PX4 and IBVS with night settings-->
 	<!-- JSW March 2018 -->
 
     <!-- rosbag args -->

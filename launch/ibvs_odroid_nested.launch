@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
 	<!-- Launch file for PX4 and IBVS -->
 	<!-- JSW March 2018 -->
@@ -87,19 +88,18 @@
 
     <!-- ArUco Localization -->
     <node pkg="aruco_localization" type="aruco_localization" name="aruco" output="screen">
-        <param name="show_output_video" value="$(arg show_aruco_detections)" />
-        <param name="markermap_config" value="$(find ibvs_sim)/params/nested.yaml" />
-        <!-- <param name="marker_size" value="0.1760" /> -->
+        <param name="show_output_video" value="$(arg show)" />
+        <param name="markermap_config" value="$(find ibvs_sim)/params/nested148_65.yaml" />
         <param name="marker_size" value="0.7071" />
-        <param name="marker_size_inner" value="0.075" />
-        <param name="id_outer" value="166" />
-        <param name="id_inner" value="104" />
+        <param name="marker_size_inner" value="0.127" />
 
+        <param name="id_outer" value="148" />
+        <param name="id_inner" value="65" />
         <param name="debug_save_input_frames" value="false" />
         <param name="debug_save_output_frames" value="false" />
         <param name="debug_image_path" value="/tmp/arucoimages" />
 
-        <remap from="input_image" to="/image_raw" />
+        <remap from="input_image" to="image_raw" />
         <remap from="output_image" to="aruco/image" />
     </node>
 
