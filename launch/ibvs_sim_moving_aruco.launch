@@ -18,7 +18,7 @@
   <arg name="world_file" default="boat.world"/>
 
   <!-- ArUco args -->
-  <arg name="show" default="true" />
+  <arg name="show_aruco_detections" default="true" />
 
   <!-- Start Simulator -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -74,10 +74,9 @@
     </node>
 
     <!-- Waypoint Manager -->
-    <node name="waypoint_manager" pkg="ibvs_sim" type="ibvs_waypoint_manager.py" output="screen">
-      <remap from="waypoint" to="high_level_command"/>
-      <!-- <remap from="state" to="ground_truth/odometry/NED"/> -->
-      <remap from="state" to="estimate"/>
+    <node name="waypoint_manager" pkg="ibvs_sim" type="ibvs_state_machine.py" output="screen">
+      <param name ="mode" value="roscopter" />
+      <remap from="/target_position" to="/boat/odometry/NED"/>
     </node>
 
     <!-- plot states -->
@@ -106,6 +105,7 @@
   <!-- level-frame mapper -->
   <node pkg="ibvs_sim" type="level_frame_mapper.py" name="level_frame_mapper" output="screen">
     <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/>
+    <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
   </node>
 
   <!-- IBVS -->
@@ -114,10 +114,13 @@
 
   <!-- ArUco Localization -->
   <node pkg="aruco_localization" type="aruco_localization" name="aruco" output="screen">
-    <param name="show_output_video" value="$(arg show)" />
-    <param name="markermap_config" value="$(find ibvs_sim)/params/marker_166.yaml" />
+    <param name="show_output_video" value="$(arg show_aruco_detections)" />
+    <param name="markermap_config" value="$(find ibvs_sim)/params/nested148_65.yaml" />
     <!-- <param name="marker_size" value="0.1760" /> -->
     <param name="marker_size" value="0.7071" />
+    <param name="marker_size_inner" value="0.125" />
+    <param name="id_outer" value="148" />
+    <param name="id_inner" value="65" />
 
     <param name="debug_save_input_frames" value="false" />
     <param name="debug_save_output_frames" value="false" />
@@ -127,12 +130,19 @@
     <remap from="output_image" to="aruco/image" />
   </node>
 
+
+  <!-- Wind Publisher -->
+  <node name="wind_publisher" pkg="ibvs_sim" type="wind.py">
+    <param name="wind_N" value="0.0" />
+    <param name="wind_E" value="0.0" />
+  </node>
+
   <!-- ...... -->
   <!-- ROSBAG -->
   <!-- ...... -->
   <!-- <node name="record" pkg="rosbag" type="record" args="/quadcopter/ground_truth/odometry/NED /boat/odometry/NED /quadcopter/euler /boat/euler -o boat_copter_states" output="screen"/> -->
 
-  <group if="$(arg show)">
+  <group if="$(arg show_aruco_detections)">
     <node name="image_view" pkg="image_view" type="image_view" respawn="false" output="screen">
       <remap from="image" to="/quadcopter/camera/rgb"/>
       <param name="autosize" value="true" />

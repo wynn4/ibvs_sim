@@ -75,10 +75,9 @@
     </node>
 
     <!-- Waypoint Manager -->
-    <node name="waypoint_manager" pkg="ibvs_sim" type="ibvs_waypoint_manager.py" output="screen">
-      <remap from="waypoint" to="high_level_command"/>
-      <!-- <remap from="state" to="ground_truth/odometry/NED"/> -->
-      <remap from="state" to="estimate"/>
+    <node name="waypoint_manager" pkg="ibvs_sim" type="ibvs_state_machine.py" output="screen">
+      <param name ="mode" value="roscopter" />
+      <remap from="/target_position" to="/boat/odometry/NED"/>
     </node>
 
     <!-- plot states -->
@@ -160,6 +159,12 @@
 
     <remap from="input_image" to="/quadcopter/camera/rgb" />
     <remap from="output_image" to="aruco/image" />
+  </node>
+
+  <!-- Wind Publisher -->
+  <node name="wind_publisher" pkg="ibvs_sim" type="wind.py">
+    <param name="wind_N" value="0.0" />
+    <param name="wind_E" value="0.0" />
   </node>
 
 
