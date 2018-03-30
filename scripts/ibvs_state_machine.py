@@ -7,7 +7,7 @@
 import rospy
 from std_msgs.msg import Bool
 from std_msgs.msg import Float32
-from geometry_msgs.msg import Vector3
+from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from rosflight_msgs.msg import Command
 from mavros_msgs.msg import PositionTarget
@@ -26,7 +26,7 @@ class StateMachine():
 
         # load parameters from param server
 
-        # Load flag for interfacing with ROScopter or MAVROS
+        # Set flag for interfacing with ROScopter or MAVROS
         self.mode_flag = rospy.get_param('~mode', 'mavros')
 
         # Velocity saturation values
@@ -38,13 +38,14 @@ class StateMachine():
         self.v_max_inner = rospy.get_param('~v_max_inner', 0.2)
         self.w_max_inner = rospy.get_param('~w_max_inner', 0.2)
 
-        self.count_outer_req = rospy.get_param('count_outer', 100)
-        self.count_inner_req = rospy.get_param('count_inner', 50)
+        self.count_outer_req = rospy.get_param('~count_outer', 100)
+        self.count_inner_req = rospy.get_param('~count_inner', 50)
+
+        self.rendezvous_height = rospy.get_param('~rendezvous_height', 15.0)
 
         # initialize target location
         self.target_N = 0.0
         self.target_E = 0.0
-        self.target_D = 0.0
 
         # ibvs parameters
         # outer
@@ -105,7 +106,7 @@ class StateMachine():
                             | PositionTarget.IGNORE_YAW_RATE)
 
         # Set Up Publishers and Subscribers
-        self.target_sub = rospy.Subscriber('/target_position', Vector3, self.target_callback, queue_size=1)
+        self.target_sub = rospy.Subscriber('/target_position', Odometry, self.target_callback, queue_size=1)
         self.ibvs_sub = rospy.Subscriber('/ibvs/vel_cmd', Twist, self.ibvs_velocity_cmd_callback, queue_size=1)
         self.ibvs_inner_sub = rospy.Subscriber('/ibvs_inner/vel_cmd', Twist, self.ibvs_velocity_cmd_inner_callback, queue_size=1)
         self.aruco_sub = rospy.Subscriber('/aruco/distance_inner', Float32, self.aruco_inner_distance_callback)
@@ -147,7 +148,7 @@ class StateMachine():
                 print(self.distance)
                 # in this case we enter an open-loop drop onto the marker
                 if self.distance < 1.0 and self.distance > 0.1 and self.land_mode_sent == False:
-                    
+
                     self.execute_landing()
                         
                 else:
@@ -248,14 +249,14 @@ class StateMachine():
 
     def target_callback(self, msg):
 
-        self.target_N = msg.x
-        self.target_E = msg.y
-        self.target_D = msg.z
+        self.target_N = msg.pose.pose.position.x
+        self.target_E = msg.pose.pose.position.y
 
 
     def execute_landing(self):
-
+        
         if self.mode_flag == 'mavros':
+            
             rospy.wait_for_service('/mavros/set_mode')
             try:
                 isModeChanged = self.set_mode_srv(custom_mode='AUTO.LAND')
@@ -276,6 +277,7 @@ class StateMachine():
             command_msg.z = 0.0
             command_msg.mode = Command.MODE_ROLL_PITCH_YAWRATE_THROTTLE
             self.command_pub_roscopter.publish(command_msg)
+
 
     def send_ibvs_command(self, flag):
 
@@ -343,7 +345,6 @@ class StateMachine():
     def send_waypoint_command(self):
 
         if self.mode_flag == 'mavros':
-            # print "following waypoints"
             waypoint_command_msg = PositionTarget()
             waypoint_command_msg.header.stamp = rospy.get_rostime()
             waypoint_command_msg.coordinate_frame = waypoint_command_msg.FRAME_LOCAL_NED
@@ -351,7 +352,7 @@ class StateMachine():
 
             waypoint_command_msg.position.x = self.target_E  # E
             waypoint_command_msg.position.y = self.target_N  # N
-            waypoint_command_msg.position.z = -self.target_D  # U
+            waypoint_command_msg.position.z = self.rendezvous_height  # U
 
             waypoint_command_msg.yaw = np.radians(0.0)  # Point North?
 
@@ -362,7 +363,7 @@ class StateMachine():
             wp_command_msg = Command()
             wp_command_msg.x = self.target_N
             wp_command_msg.y = self.target_E
-            wp_command_msg.F = self.target_D
+            wp_command_msg.F = -self.rendezvous_height
             wp_command_msg.z = 0.0
             wp_command_msg.mode = Command.MODE_XPOS_YPOS_YAW_ALTITUDE
 
