@@ -17,7 +17,10 @@ import numpy as np
 
 
 # TODO:
-
+# - Add wind-compensated rendezvous point
+# - Don't switch into IBVS until you've reached the rendezvous point
+# - Handle switching to the inner marker corners batter
+#    - The count method isn't great
 
 
 class StateMachine():
