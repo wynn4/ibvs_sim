@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-## ROS node that publishes a cyclical pattern of velocity commands to PX4 via mavros.
+## ROS node that publishes wind.
 ## JSW Jan 2018
 
 import rospy
@@ -15,9 +15,9 @@ class Wind(object):
         # Load ROS params.
 
         # Initialize other class variables.
-        self.wind_x = 2.12
-        self.wind_y = 2.12
-        self.wind_z = 0.0
+        self.wind_N = rospy.get_param('~wind_N', 0.0)
+        self.wind_E = rospy.get_param('~wind_E', 0.0)
+        self.wind_D = rospy.get_param('~wind_D', 0.0)
         
         # Initialize timers.
         self.update_rate = 20.0
@@ -30,9 +30,9 @@ class Wind(object):
     def update_wind(self, event):
         
         wind_msg = Vector3()
-        wind_msg.x = self.wind_x
-        wind_msg.y = self.wind_y
-        wind_msg.z = self.wind_z
+        wind_msg.x = self.wind_N
+        wind_msg.y = self.wind_E
+        wind_msg.z = self.wind_D
 
         self.wind_pub.publish(wind_msg)
 
