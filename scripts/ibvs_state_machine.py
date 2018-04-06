@@ -13,6 +13,8 @@ from rosflight_msgs.msg import Command
 from mavros_msgs.msg import PositionTarget
 from mavros_msgs.srv import SetMode
 import numpy as np
+import tf
+from collections import deque
 
 
 
@@ -32,6 +34,9 @@ class StateMachine():
         # Set flag for interfacing with ROScopter or MAVROS
         self.mode_flag = rospy.get_param('~mode', 'mavros')
 
+        # Initialize status flag
+        self.status_flag = 'RENDEZVOUS'
+
         # Velocity saturation values
         self.u_max = rospy.get_param('~u_max', 0.5)
         self.v_max = rospy.get_param('~v_max', 0.5)
@@ -45,10 +50,44 @@ class StateMachine():
         self.count_inner_req = rospy.get_param('~count_inner', 50)
 
         self.rendezvous_height = rospy.get_param('~rendezvous_height', 15.0)
+        self.wp_threshold = rospy.get_param('~wp_threshold', 1.0)
+
+        self.wp_error = 1.0e3
 
         # initialize target location
         self.target_N = 0.0
         self.target_E = 0.0
+
+        # Initialize waypoint setpoint
+        self.wp_N = 0.0
+        self.wp_E = 0.0
+        self.wp_D = -self.rendezvous_height
+
+        self.wind_calc_completed = False
+        self.wind_window_seconds = 5
+        self.wind_calc_duration = 5.0
+
+        # Initialize queues
+        if self.mode_flag == 'mavros':
+            # this assumes state estimates at ~30 hz which gives us 5 seconds of data
+            self.queue_length = 30*self.wind_window_seconds
+        else:
+            # this assumes we're in roscopter mode and state comes in at ~170 hz
+            self.queue_length = 170*self.wind_window_seconds
+        self.phi_queue = deque(maxlen=self.queue_length)
+        self.theta_queue = deque(maxlen=self.queue_length)
+
+        # Average roll and pitch values in the wind
+        self.roll_avg = 0.0
+        self.pitch_avg = 0.0
+
+        # Initialize state variables
+        self.pn = 0.0
+        self.pe = 0.0
+        self.pd = 0.0
+        self.phi = 0.0
+        self.theta = 0.0
+        self.psi = 0.0
 
         # ibvs parameters
         # outer
@@ -113,6 +152,7 @@ class StateMachine():
         self.ibvs_sub = rospy.Subscriber('/ibvs/vel_cmd', Twist, self.ibvs_velocity_cmd_callback, queue_size=1)
         self.ibvs_inner_sub = rospy.Subscriber('/ibvs_inner/vel_cmd', Twist, self.ibvs_velocity_cmd_inner_callback, queue_size=1)
         self.aruco_sub = rospy.Subscriber('/aruco/distance_inner', Float32, self.aruco_inner_distance_callback)
+        self.state_sub = rospy.Subscriber('estimate', Odometry, self.state_callback)
         self.command_pub_roscopter = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
         self.command_pub_mavros = rospy.Publisher('/mavros/setpoint_raw/local', PositionTarget, queue_size=1)
         self.ibvs_active_pub_ = rospy.Publisher('ibvs_active', Bool, queue_size=1)
@@ -124,11 +164,14 @@ class StateMachine():
         self.ibvs_active_msg.data = False
 
         # Initialize timers.
-        self.update_rate = 20.0
-        self.update_timer = rospy.Timer(rospy.Duration(1.0/self.update_rate), self.send_commands)
+        self.status_update_rate = 5.0
+        self.status_timer = rospy.Timer(rospy.Duration(1.0/self.status_update_rate), self.update_status)
+
+        self.command_update_rate = 20.0
+        self.update_timer = rospy.Timer(rospy.Duration(1.0/self.command_update_rate), self.send_commands)
 
 
-    def send_commands(self, msg):
+    def send_commands(self, event):
 
         time_cur = rospy.get_time()
 
@@ -148,7 +191,7 @@ class StateMachine():
 
             if self.ibvs_count_inner > self.count_inner_req:
 
-                print(self.distance)
+                # print(self.distance)
                 # in this case we enter an open-loop drop onto the marker
                 if self.distance < 1.0 and self.distance > 0.1 and self.land_mode_sent == False:
 
@@ -173,87 +216,29 @@ class StateMachine():
             self.send_waypoint_command()
 
 
-    def ibvs_velocity_cmd_callback(self, msg):
+    def update_status(self, event):
 
-        if self.mode_flag == 'mavros':
-            # fill out the NED velocity vector
-            self.ned_vel_vec_outer[0][0] = msg.linear.x
-            self.ned_vel_vec_outer[1][0] = msg.linear.y
-            self.ned_vel_vec_outer[2][0] = msg.linear.z
+        if self.status_flag == 'RENDEZVOUS' and self.wp_error > self.wp_threshold:
 
-            # rotate into the enu frame
-            enu_vec = self.ned_to_enu(self.ned_vel_vec_outer)
-        
-            # update state variables with the ENU data
-            self.ibvs_x = enu_vec[0][0]
-            self.ibvs_y = enu_vec[1][0]
-            self.ibvs_F = enu_vec[2][0]
-        
-            # here we just flip the sign for yawrate to work with mavros FLU coord frame
-            self.ibvs_z = -msg.angular.z
+            # Go to the rendezvous point
+            self.wp_N = self.target_N
+            self.wp_E = self.target_E
+            self.wp_D = -self.rendezvous_height
 
-        else:
-            # just pull off the message data
-            self.ibvs_x = msg.linear.x
-            self.ibvs_y = msg.linear.y
-            self.ibvs_F = msg.linear.z
-            self.ibvs_z = msg.angular.z
+        if self.status_flag == 'RENDEZVOUS' and self.wp_error <= self.wp_threshold:
 
-        # print '\nx_vel:', self.ibvs_x, '\ny_vel:', self.ibvs_y, '\nz_vel:', self.ibvs_F
+            # Switch to wind calibration status
+            self.status_flag = 'WIND_CALIBRATION'
+            self.wind_calc_time = rospy.get_time()
 
-        # increment the counter
-        self.ibvs_count += 1
+        if self.status_flag == 'WIND_CALIBRATION' and self.wind_calc_completed == False:
 
-        # get the time
-        self.ibvs_time = rospy.get_time()
-
-
-    def ibvs_velocity_cmd_inner_callback(self, msg):
-
-        if self.mode_flag == 'mavros':
-            # fill out the NED velocity vector
-            self.ned_vel_vec_inner[0][0] = msg.linear.x
-            self.ned_vel_vec_inner[1][0] = msg.linear.y
-            self.ned_vel_vec_inner[2][0] = msg.linear.z
-
-            # rotate into the enu frame
-            enu_vec = self.ned_to_enu(self.ned_vel_vec_inner)
-
-            # update state variables with the ENU data
-            self.ibvs_x_inner = enu_vec[0][0]
-            self.ibvs_y_inner = enu_vec[1][0]
-            self.ibvs_F_inner = enu_vec[2][0]
-
-            # here we just flip the sign for yawrate to work with mavros FLU coord frame
-            self.ibvs_z_inner = -msg.angular.z
-
-        else:
-            # just pull off the message data
-            self.ibvs_x_inner = msg.linear.x
-            # print "vel_x: " + str(msg.linear.x)
-            self.ibvs_y_inner = msg.linear.y
-            self.ibvs_F_inner = msg.linear.z
-            # print "vel_down: " + str(msg.linear.z)
-            self.ibvs_z_inner = msg.angular.z
-
-
-        # increment the counter
-        self.ibvs_count_inner += 1
-
-        # get the time
-        self.ibvs_time_inner = rospy.get_time()
-
-
-    def aruco_inner_distance_callback(self, msg):
-
-        self.distance = msg.data
-        # print(self.distance)
-
-
-    def target_callback(self, msg):
-
-        self.target_N = msg.pose.pose.position.x
-        self.target_E = msg.pose.pose.position.y
+            now = rospy.get_time()
+            if now - self.wind_calc_time > self.wind_calc_duration:
+                self.roll_avg = sum(self.phi_queue)/len(self.phi_queue)
+                self.pitch_avg = sum(self.theta_queue)/len(self.theta_queue)
+                self.wind_calc_completed = True
+                print "Average roll angle: %f \nAverage pitch angle: %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg)) 
 
 
     def execute_landing(self):
@@ -353,8 +338,8 @@ class StateMachine():
             waypoint_command_msg.coordinate_frame = waypoint_command_msg.FRAME_LOCAL_NED
             waypoint_command_msg.type_mask = self.ned_pos_mask
 
-            waypoint_command_msg.position.x = self.target_E  # E
-            waypoint_command_msg.position.y = self.target_N  # N
+            waypoint_command_msg.position.x = self.wp_E  # E
+            waypoint_command_msg.position.y = self.wp_N  # N
             waypoint_command_msg.position.z = self.rendezvous_height  # U
 
             waypoint_command_msg.yaw = np.radians(0.0)  # Point North?
@@ -364,14 +349,127 @@ class StateMachine():
 
         else:
             wp_command_msg = Command()
-            wp_command_msg.x = self.target_N
-            wp_command_msg.y = self.target_E
+            wp_command_msg.x = self.wp_N
+            wp_command_msg.y = self.wp_E
             wp_command_msg.F = -self.rendezvous_height
             wp_command_msg.z = 0.0
             wp_command_msg.mode = Command.MODE_XPOS_YPOS_YAW_ALTITUDE
 
             # Publish.
             self.command_pub_roscopter.publish(wp_command_msg)
+
+
+    def ibvs_velocity_cmd_callback(self, msg):
+
+        if self.mode_flag == 'mavros':
+            # fill out the NED velocity vector
+            self.ned_vel_vec_outer[0][0] = msg.linear.x
+            self.ned_vel_vec_outer[1][0] = msg.linear.y
+            self.ned_vel_vec_outer[2][0] = msg.linear.z
+
+            # rotate into the enu frame
+            enu_vec = self.ned_to_enu(self.ned_vel_vec_outer)
+        
+            # update state variables with the ENU data
+            self.ibvs_x = enu_vec[0][0]
+            self.ibvs_y = enu_vec[1][0]
+            self.ibvs_F = enu_vec[2][0]
+        
+            # here we just flip the sign for yawrate to work with mavros FLU coord frame
+            self.ibvs_z = -msg.angular.z
+
+        else:
+            # just pull off the message data
+            self.ibvs_x = msg.linear.x
+            self.ibvs_y = msg.linear.y
+            self.ibvs_F = msg.linear.z
+            self.ibvs_z = msg.angular.z
+
+        # print '\nx_vel:', self.ibvs_x, '\ny_vel:', self.ibvs_y, '\nz_vel:', self.ibvs_F
+
+        # increment the counter
+        self.ibvs_count += 1
+
+        # get the time
+        self.ibvs_time = rospy.get_time()
+
+
+    def ibvs_velocity_cmd_inner_callback(self, msg):
+
+        if self.mode_flag == 'mavros':
+            # fill out the NED velocity vector
+            self.ned_vel_vec_inner[0][0] = msg.linear.x
+            self.ned_vel_vec_inner[1][0] = msg.linear.y
+            self.ned_vel_vec_inner[2][0] = msg.linear.z
+
+            # rotate into the enu frame
+            enu_vec = self.ned_to_enu(self.ned_vel_vec_inner)
+
+            # update state variables with the ENU data
+            self.ibvs_x_inner = enu_vec[0][0]
+            self.ibvs_y_inner = enu_vec[1][0]
+            self.ibvs_F_inner = enu_vec[2][0]
+
+            # here we just flip the sign for yawrate to work with mavros FLU coord frame
+            self.ibvs_z_inner = -msg.angular.z
+
+        else:
+            # just pull off the message data
+            self.ibvs_x_inner = msg.linear.x
+            # print "vel_x: " + str(msg.linear.x)
+            self.ibvs_y_inner = msg.linear.y
+            self.ibvs_F_inner = msg.linear.z
+            # print "vel_down: " + str(msg.linear.z)
+            self.ibvs_z_inner = msg.angular.z
+
+
+        # increment the counter
+        self.ibvs_count_inner += 1
+
+        # get the time
+        self.ibvs_time_inner = rospy.get_time()
+
+
+    def aruco_inner_distance_callback(self, msg):
+
+        self.distance = msg.data
+        # print(self.distance)
+
+
+    def target_callback(self, msg):
+
+        self.target_N = msg.pose.pose.position.x
+        self.target_E = msg.pose.pose.position.y
+
+
+    def state_callback(self, msg):
+
+        # this should already be coming in NED
+        self.pn = msg.pose.pose.position.x
+        self.pe = msg.pose.pose.position.y
+        self.pd = msg.pose.pose.position.z
+
+        # convert quaternion to RPY
+        quaternion = (
+            msg.pose.pose.orientation.x,
+            msg.pose.pose.orientation.y,
+            msg.pose.pose.orientation.z,
+            msg.pose.pose.orientation.w)
+
+        euler = tf.transformations.euler_from_quaternion(quaternion)
+        self.phi = euler[0]
+        self.theta = euler[1]
+        self.psi = euler[2]
+
+        # update wp_error
+        self.wp_error = np.sqrt((self.pn - self.wp_N)**2 + (self.pe - self.wp_E)**2
+            + (-self.pd - self.rendezvous_height)**2)
+
+        # update our attitude queues
+        self.phi_queue.appendleft(self.phi)
+        self.theta_queue.appendleft(self.theta)
+
+
 
 
     def saturate(self, value, up_limit, low_limit):
