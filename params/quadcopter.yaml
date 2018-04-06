@@ -195,7 +195,7 @@ imu: {
 
 noise_on: true,
 topic: imu/data,
-rate: 500,
+rate: 200,
 gyro_bias_topic: imu/gyro_bias,
 gyro_stdev: 0.005,
 gyro_bias_range: 0.005,
