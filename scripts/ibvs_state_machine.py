@@ -66,6 +66,7 @@ class StateMachine():
         self.wind_calc_completed = False
         self.wind_window_seconds = 5
         self.wind_calc_duration = 5.0
+        self.wind_offset = np.zeros((3,1), dtype=np.float32)
 
         # Initialize queues
         if self.mode_flag == 'mavros':
@@ -185,7 +186,7 @@ class StateMachine():
             # print "reset"
 
         # if the ArUco has been in sight for a while
-        if self.ibvs_count > self.count_outer_req or self.ibvs_count_inner > self.count_inner_req:
+        if (self.ibvs_count > self.count_outer_req or self.ibvs_count_inner > self.count_inner_req) and self.status_flag == 'IBVS':
             
             self.ibvs_active_msg.data = True
 
@@ -218,18 +219,27 @@ class StateMachine():
 
     def update_status(self, event):
 
-        if self.status_flag == 'RENDEZVOUS' and self.wp_error > self.wp_threshold:
+        if self.status_flag == 'RENDEZVOUS':
 
-            # Go to the rendezvous point
-            self.wp_N = self.target_N
-            self.wp_E = self.target_E
-            self.wp_D = -self.rendezvous_height
+            if self.wind_calc_completed == False:
+                # Go to the original rendezvous point
+                self.wp_N = self.target_N
+                self.wp_E = self.target_E
+                self.wp_D = -self.rendezvous_height
+            else:
+                # Go to the wind-compensated rendezvous point
+                self.wp_N = self.target_N + self.wind_offset[0][0]
+                self.wp_E = self.target_E + self.wind_offset[1][0]
+
 
         if self.status_flag == 'RENDEZVOUS' and self.wp_error <= self.wp_threshold:
 
-            # Switch to wind calibration status
-            self.status_flag = 'WIND_CALIBRATION'
-            self.wind_calc_time = rospy.get_time()
+            if self.wind_calc_completed == False:
+                # Switch to wind calibration status
+                self.status_flag = 'WIND_CALIBRATION'
+                self.wind_calc_time = rospy.get_time()
+            else:
+                self.status_flag = 'IBVS'
 
         if self.status_flag == 'WIND_CALIBRATION' and self.wind_calc_completed == False:
 
@@ -237,8 +247,10 @@ class StateMachine():
             if now - self.wind_calc_time > self.wind_calc_duration:
                 self.roll_avg = sum(self.phi_queue)/len(self.phi_queue)
                 self.pitch_avg = sum(self.theta_queue)/len(self.theta_queue)
+                self.wind_offset = self.compute_rendezvous_offset(self.roll_avg, self.pitch_avg)
                 self.wind_calc_completed = True
-                print "Average roll angle: %f \nAverage pitch angle: %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg)) 
+                self.status_flag = 'RENDEZVOUS'
+                print "Average roll angle: %f \nAverage pitch angle: %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg))
 
 
     def execute_landing(self):
@@ -352,11 +364,72 @@ class StateMachine():
             wp_command_msg.x = self.wp_N
             wp_command_msg.y = self.wp_E
             wp_command_msg.F = -self.rendezvous_height
-            wp_command_msg.z = 0.0
+            wp_command_msg.z = np.radians(0.0)
             wp_command_msg.mode = Command.MODE_XPOS_YPOS_YAW_ALTITUDE
 
             # Publish.
             self.command_pub_roscopter.publish(wp_command_msg)
+
+
+    def compute_rendezvous_offset(self, phi, theta):
+
+        # Flat-earth geolocation to compute the rendezvous offset
+        sphi = np.sin(phi)
+        cphi = np.cos(phi)
+        stheta = np.sin(theta)
+        ctheta = np.cos(theta)
+        spsi = np.sin(self.psi)
+        cpsi = np.cos(self.psi)
+
+        # mounting angle offsets
+        phi_m = 0.0    # roll relative to the body frame
+        theta_m = 0.0  # pitch '...'
+        psi_m = 0.0    # yaw '...'
+
+        ## define fixed rotations
+        sphi_m = np.sin(phi_m)
+        cphi_m = np.cos(phi_m)
+        stheta_m = np.sin(theta_m)
+        ctheta_m = np.cos(theta_m)
+        spsi_m = np.sin(psi_m )
+        cpsi_m = np.cos(psi_m )
+
+        # Define rotations.
+        # R_b_i = R_i_b transpose
+        R_b_i = np.array([[ctheta*cpsi, ctheta*spsi, -stheta],
+                          [sphi*stheta*cpsi - cphi*spsi, sphi*stheta*spsi + cphi*cpsi, sphi*ctheta],
+                          [cphi*stheta*cpsi + sphi*spsi, cphi*stheta*spsi - sphi*cpsi, cphi*ctheta]]).T
+        R_m_b = np.array([[ctheta_m*cpsi_m, ctheta_m*spsi_m, -stheta_m],
+                          [sphi_m*stheta_m*cpsi_m-cphi_m*spsi_m, sphi_m*stheta_m*spsi_m+cphi_m*cpsi_m, sphi_m*ctheta_m],
+                          [cphi_m*stheta_m*cpsi_m+sphi_m*spsi_m, cphi_m*stheta_m*spsi_m-sphi_m*cpsi_m, cphi_m*ctheta_m]]).T
+        R_c_m = np.array([[0., 1., 0.],
+                          [-1., 0., 0.],
+                          [0., 0., 1.]]).T
+
+        R_c_i = R_b_i.dot(R_m_b.dot(R_c_m))
+
+        # From eq 13.9 in UAV book but we want the target at the center of the image frame and thus the unit
+        # vector el_hat_c is simply:
+        el_hat_c = np.array([[0.0],
+                             [0.0],
+                             [1.0]])
+        # Vector aligned with inertial k (down) axis
+        k_i = np.array([[0.0],
+                        [0.0],
+                        [1.0]])
+
+        # Derrived from EQ 13.18
+        numerator = R_c_i.dot(el_hat_c)
+        denominator = np.dot(k_i.T, numerator)
+
+        P_target = np.array([[0.0],
+                             [0.0],
+                             [0.0]])
+
+        # EQ 13.18 rearranged
+        P_uav = P_target - self.rendezvous_height*numerator/denominator
+
+        return P_uav
 
 
     def ibvs_velocity_cmd_callback(self, msg):
