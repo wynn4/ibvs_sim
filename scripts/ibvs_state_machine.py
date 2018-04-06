@@ -183,6 +183,7 @@ class StateMachine():
             self.ibvs_count = 0
             self.ibvs_count_inner = 0
             self.ibvs_active_msg.data = False
+            self.status_flag = 'RENDEZVOUS'
             # print "reset"
 
         # if the ArUco has been in sight for a while
@@ -219,18 +220,7 @@ class StateMachine():
 
     def update_status(self, event):
 
-        if self.status_flag == 'RENDEZVOUS':
-
-            if self.wind_calc_completed == False:
-                # Go to the original rendezvous point
-                self.wp_N = self.target_N
-                self.wp_E = self.target_E
-                self.wp_D = -self.rendezvous_height
-            else:
-                # Go to the wind-compensated rendezvous point
-                self.wp_N = self.target_N + self.wind_offset[0][0]
-                self.wp_E = self.target_E + self.wind_offset[1][0]
-
+        self.update_wp_error()
 
         if self.status_flag == 'RENDEZVOUS' and self.wp_error <= self.wp_threshold:
 
@@ -241,13 +231,15 @@ class StateMachine():
             else:
                 self.status_flag = 'IBVS'
 
-        if self.status_flag == 'WIND_CALIBRATION' and self.wind_calc_completed == False:
+        if self.status_flag == 'WIND_CALIBRATION':
 
             now = rospy.get_time()
             if now - self.wind_calc_time > self.wind_calc_duration:
                 self.roll_avg = sum(self.phi_queue)/len(self.phi_queue)
                 self.pitch_avg = sum(self.theta_queue)/len(self.theta_queue)
                 self.wind_offset = self.compute_rendezvous_offset(self.roll_avg, self.pitch_avg)
+                self.wp_N = self.target_N + self.wind_offset[0][0]
+                self.wp_E = self.target_E + self.wind_offset[1][0]
                 self.wind_calc_completed = True
                 self.status_flag = 'RENDEZVOUS'
                 print "Average roll angle: %f \nAverage pitch angle: %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg))
@@ -514,6 +506,9 @@ class StateMachine():
         self.target_N = msg.pose.pose.position.x
         self.target_E = msg.pose.pose.position.y
 
+        self.wp_N = self.target_N + self.wind_offset[0][0]
+        self.wp_E = self.target_E + self.wind_offset[1][0]
+
 
     def state_callback(self, msg):
 
@@ -535,12 +530,18 @@ class StateMachine():
         self.psi = euler[2]
 
         # update wp_error
-        self.wp_error = np.sqrt((self.pn - self.wp_N)**2 + (self.pe - self.wp_E)**2
-            + (-self.pd - self.rendezvous_height)**2)
+        # self.wp_error = np.sqrt((self.pn - self.wp_N)**2 + (self.pe - self.wp_E)**2
+            # + (-self.pd - self.rendezvous_height)**2)
 
         # update our attitude queues
         self.phi_queue.appendleft(self.phi)
         self.theta_queue.appendleft(self.theta)
+
+
+    def update_wp_error(self):
+
+        self.wp_error = np.sqrt((self.pn - self.wp_N)**2 + (self.pe - self.wp_E)**2
+            + (-self.pd - self.rendezvous_height)**2)
 
 
 

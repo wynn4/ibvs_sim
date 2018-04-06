@@ -81,6 +81,8 @@
 
       <remap from="estimate" to="ground_truth/odometry/NED"/>
       <!-- <remap from="estimate" to="estimate"/> -->
+
+      <param name="wp_threshold" value="0.5" />
     </node>
 
     <!-- plot states -->
