@@ -70,14 +70,17 @@
 
     <!-- PID Position Controller -->
     <node name="controller" pkg="ibvs_sim" type="controller.py" output="screen">
-      <!-- <remap from="estimate" to="ground_truth/odometry/NED"/> -->
-      <remap from="estimate" to="estimate"/>
+      <remap from="estimate" to="ground_truth/odometry/NED"/>
+      <!-- <remap from="estimate" to="estimate"/> -->
     </node>
 
     <!-- Waypoint Manager -->
     <node name="waypoint_manager" pkg="ibvs_sim" type="ibvs_state_machine.py" output="screen">
       <param name ="mode" value="roscopter" />
       <remap from="/target_position" to="/boat/odometry/NED"/>
+
+      <remap from="estimate" to="ground_truth/odometry/NED"/>
+      <!-- <remap from="estimate" to="estimate"/> -->
     </node>
 
     <!-- plot states -->
@@ -163,7 +166,7 @@
 
   <!-- Wind Publisher -->
   <node name="wind_publisher" pkg="ibvs_sim" type="wind.py">
-    <param name="wind_N" value="0.0" />
+    <param name="wind_N" value="15.0" />
     <param name="wind_E" value="0.0" />
   </node>
 
