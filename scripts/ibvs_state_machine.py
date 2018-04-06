@@ -19,9 +19,9 @@ from collections import deque
 
 
 # TODO:
-# - Add wind-compensated rendezvous point
-# - Don't switch into IBVS until you've reached the rendezvous point
-# - Handle switching to the inner marker corners batter
+# - Add wind-compensated rendezvous point -- Done April 6, 2018
+# - Don't switch into IBVS until you've reached the rendezvous point -- Done April 6, 2018
+# - Handle switching to the inner marker corners better
 #    - The count method isn't great
 
 
