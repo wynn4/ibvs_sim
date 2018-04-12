@@ -40,7 +40,7 @@ class LevelFrameVisualizer(object):
         self.f = 0.0
 
         # visualization params
-        self.show = rospy.get_param('~show', False)
+        self.show = rospy.get_param('~show', True)
         shape = (self.img_h, self.img_w, 3)
         self.level_frame = np.zeros(shape, np.uint8)
 
