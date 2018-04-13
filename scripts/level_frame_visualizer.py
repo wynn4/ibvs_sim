@@ -62,7 +62,8 @@ class LevelFrameVisualizer(object):
 
         # initialize subscribers
         self.uv_bar_sub = rospy.Subscriber('/ibvs/uv_bar_lf', FloatList, self.level_frame_corners_callback)
-        self.corner_pix_sub = rospy.Subscriber('/aruco/marker_corners', FloatList, self.corners_callback)
+        self.uv_bar_des_sub = rospy.Subscriber('/ibvs/uv_bar_des', FloatList, self.level_frame_desired_corners_callback)
+        self.corner_pix_sub = rospy.Subscriber('/aruco/marker_corners_outer', FloatList, self.corners_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
         self.ibvs_active_sub = rospy.Subscriber('/quadcopter/ibvs_active', Bool, self.ibvs_active_callback)
 
@@ -188,6 +189,20 @@ class LevelFrameVisualizer(object):
         # elapsed = time.time() - t
         # hz_approx = 1.0/elapsed
         # print(hz_approx)
+
+    def level_frame_desired_corners_callback(self, msg):
+
+        self.p_des[0][0] = msg.data[0]
+        self.p_des[1][0] = msg.data[1]
+
+        self.p_des[2][0] = msg.data[2]
+        self.p_des[3][0] = msg.data[3]
+
+        self.p_des[4][0] = msg.data[4]
+        self.p_des[5][0] = msg.data[5]
+
+        self.p_des[6][0] = msg.data[6]
+        self.p_des[7][0] = msg.data[7]
 
 
     def corners_callback(self, msg):

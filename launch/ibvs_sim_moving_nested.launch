@@ -125,6 +125,7 @@
     <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/>
     <remap from="/aruco/marker_corners" to="/aruco/marker_corners_inner"/>
     <remap from="/ibvs/uv_bar_lf" to="/ibvs/uv_bar_lf_inner"/>
+    <remap from="/ibvs/uv_bar_des" to="/ibvs/uv_bar_des_inner"/>
   </node>
 
   <!-- IBVS -->
@@ -132,9 +133,9 @@
     <remap from="/aruco/distance" to="/aruco/distance_outer"/>
   </node>
 
-
   <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs.py" output="screen">
     <remap from="/ibvs/uv_bar_lf" to="/ibvs/uv_bar_lf_inner"/>
+    <remap from="/ibvs/uv_bar_des" to="/ibvs/uv_bar_des_inner"/>
     <remap from="/aruco/distance" to="/aruco/distance_inner"/>
     <remap from="/ibvs/vel_cmd" to="/ibvs_inner/vel_cmd"/>
   </node>
@@ -168,7 +169,7 @@
 
   <!-- Wind Publisher -->
   <node name="wind_publisher" pkg="ibvs_sim" type="wind.py">
-    <param name="wind_N" value="15.0" />
+    <param name="wind_N" value="0.0" />
     <param name="wind_E" value="0.0" />
   </node>
 

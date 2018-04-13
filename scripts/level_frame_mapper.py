@@ -19,6 +19,7 @@ class LevelFrameMapper(object):
     def __init__(self):
 
         # load ROS params
+        p_des = rospy.get_param('~p_des', [0., 0., 0., 0., 0., 0., 0., 0.])
 
         ## initialize other class variables
 
@@ -46,7 +47,7 @@ class LevelFrameMapper(object):
 
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
-        self.p_des = np.array([-200, -200, 200, -200, 200, 200, -200, 200], dtype=np.float32).reshape(4,2)
+        self.p_des = np.array(p_des, dtype=np.float32).reshape(4,2)
 
         # copter attitude roll and pitch
         self.phi = 0.0
@@ -87,14 +88,16 @@ class LevelFrameMapper(object):
         # initialize rotation from camera frame to virtual level frame
         self.R_c_vlc = np.zeros((3,3))
 
+        # initialize publishers
+        self.uv_bar_pub = rospy.Publisher('/ibvs/uv_bar_lf', FloatList, queue_size=1)
+        self.uv_bar_des_pub = rospy.Publisher('/ibvs/uv_bar_des', FloatList, queue_size=1)
+        self.uv_bar_msg = FloatList()
+        self.uv_bar_des_msg = FloatList()
+
         # initialize subscribers
         self.corner_pix_sub = rospy.Subscriber('/aruco/marker_corners', FloatList, self.corners_callback)
         self.attitude_sub = rospy.Subscriber('/quadcopter/estimate', Odometry, self.attitude_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
-
-        # initialize publishers
-        self.uv_bar_pub = rospy.Publisher('/ibvs/uv_bar_lf', FloatList, queue_size=1)
-        self.uv_bar_msg = FloatList()
 
 
     def corners_callback(self, msg):
@@ -138,82 +141,25 @@ class LevelFrameMapper(object):
 
         corners_undist = corners_undist.reshape(4,2)
 
+        # Transform the desired marker corner locations into the VLF 
+        # desired_corners_vlf = self.transform_to_vlf(self.p_des)
+
         # Transform the actual marker corners into the VLF (input is 4x2 matrix of corners)
         actual_corners_vlf = self.transform_to_vlf(corners_undist)
 
-        # Transform the desired marker corner locations into the VLF 
-        desired_corners_vlf = self.transform_to_vlf(self.p_des)
+        # fill out the FloatList messages
+        # Desired corner loctions
+        self.uv_bar_des_msg.header.frame_id = 'level-frame_corners'
+        self.uv_bar_des_msg.header.stamp = msg.header.stamp # same as the incoming message
+        self.uv_bar_des_msg.data = self.p_des.flatten().tolist()  # flatten and convert to list type
 
-
-        # # now we have a 4x2 matirx of undistorted center-relative corner pixel locations
-        # # store in a 3x4 matrix augmented with focal length (for convienience) and save for later
-        # uvf = np.concatenate((corners_undist.T, self.f_row), axis=0)    # 3x4
-
-        # # setup rotations
-
-        # # pre-evaluate sines and cosines for rotation matrix
-        # sphi = np.sin(self.phi)
-        # cphi = np.cos(self.phi)
-        # stheta = np.sin(self.theta)
-        # ctheta = np.cos(self.theta)
-
-        # R_v1_v2 = np.array([[ctheta, 0., -stheta],
-        #                     [0., 1., 0.],
-        #                     [stheta, 0., ctheta]])
-
-        # R_v2_b = np.array([[1., 0., 0.],
-        #                    [0., cphi, sphi],
-        #                    [0., -sphi, cphi]])
-
-        # R_v1_b = np.dot(R_v2_b, R_v1_v2)
-
-        # # compute the whole rotation from camera frame to the virtual level frame
-        # self.R_c_vlc = self.R_m_c.dot(self.R_b_m.dot(R_v1_b.dot(self.R_vlc_v1))).T    # R_c_vlc = R_vlc_c.T
-
-        # # pass pixel locations through the rotation same way it's done in eq(14)
-        
-        # # first, get the terms of eq(14)
-
-        # # this is how you'd do it one pixel (u, v) at a time:  
-        # # hom = np.dot(self.R_c_vlc, np.array([[corners_undist[0][0]],[corners_undist[0][1]],[self.f]]))  # this is a homography?? 3x1
-        # # x_term = hom[0][0]
-        # # y_term = hom[1][0]
-        # # denom = hom[2][0]
-
-        # # u_bar = self.f * (x_term/denom)
-        # # v_bar = self.f * (y_term/denom)
-
-        # # we'll do it all four corners at the same time:
-        # hom = np.dot(self.R_c_vlc, uvf) # 3x4
-        
-        # # populate the matrix of (u,v) pixel coordinates in the virtual-level-frame
-        # self.uv_bar_lf[0][0] = self.f * (hom[0][0]/hom[2][0])   # u1
-        # self.uv_bar_lf[0][1] = self.f * (hom[1][0]/hom[2][0])   # v1
-
-        # self.uv_bar_lf[1][0] = self.f * (hom[0][1]/hom[2][1])   # u2
-        # self.uv_bar_lf[1][1] = self.f * (hom[1][1]/hom[2][1])   # v2
-
-        # self.uv_bar_lf[2][0] = self.f * (hom[0][2]/hom[2][2])   # u3
-        # self.uv_bar_lf[2][1] = self.f * (hom[1][2]/hom[2][2])   # v3
-
-        # self.uv_bar_lf[3][0] = self.f * (hom[0][3]/hom[2][3])   # u4
-        # self.uv_bar_lf[3][1] = self.f * (hom[1][3]/hom[2][3])   # v4
-
-        # print "data:"
-        # print "uv_bar_lf: "
-        # print(self.uv_bar_lf)
-        # print "\n"
-
-        # print "uv_bar_cam: "
-        # print(corners_undist)
-        # print "\n"
-
-        # fill out the FloatList message
+        # Actual corner locations
         self.uv_bar_msg.header.frame_id = 'level-frame_corners'
         self.uv_bar_msg.header.stamp = msg.header.stamp # same as the incoming message
         self.uv_bar_msg.data = actual_corners_vlf.flatten().tolist()  # flatten and convert to list type
 
         # publish
+        self.uv_bar_des_pub.publish(self.uv_bar_des_msg)
         self.uv_bar_pub.publish(self.uv_bar_msg)
 
         # elapsed = time.time() - t
@@ -277,7 +223,8 @@ class LevelFrameMapper(object):
         self.uv_bar_lf[3][0] = self.f * (hom[0][3]/hom[2][3])   # u4
         self.uv_bar_lf[3][1] = self.f * (hom[1][3]/hom[2][3])   # v4
 
-        return self.uv_bar_lf
+        # return a copy of 
+        return self.uv_bar_lf.copy()
 
 
 

@@ -27,7 +27,7 @@ class ImageBasedVisualServoing(object):
     def __init__(self):
 
         # load ROS params
-        p_des = rospy.get_param('~p_des', [0., 0., 0., 0., 0., 0., 0., 0.])
+        # p_des = rospy.get_param('~p_des', [0., 0., 0., 0., 0., 0., 0., 0.])
 
         ## initialize other class variables
 
@@ -74,7 +74,7 @@ class ImageBasedVisualServoing(object):
 
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
-        self.p_des = np.array(p_des, dtype=np.float32).reshape(8,1)  # 8x1
+        self.p_des = np.zeros((8,1), dtype=np.float32)  # 8x1
 
         # rotation from the virtual level frame to the vehicle 1 frame
         self.R_vlc_v1 = np.array([[0., -1., 0.],
@@ -91,6 +91,7 @@ class ImageBasedVisualServoing(object):
         self.vel_cmd_msg = Twist()
 
         # initialize subscribers
+        self.uv_bar_des_sub = rospy.Subscriber('/ibvs/uv_bar_des', FloatList, self.level_frame_desired_corners_callback)
         self.uv_bar_sub = rospy.Subscriber('/ibvs/uv_bar_lf', FloatList, self.level_frame_corners_callback)
         self.aruco_sub = rospy.Subscriber('/aruco/distance', Float32, self.aruco_distance_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
@@ -167,6 +168,21 @@ class ImageBasedVisualServoing(object):
 
         # publish
         self.vel_cmd_pub.publish(self.vel_cmd_msg)
+
+
+    def level_frame_desired_corners_callback(self, msg):
+
+        self.p_des[0][0] = msg.data[0]
+        self.p_des[1][0] = msg.data[1]
+
+        self.p_des[2][0] = msg.data[2]
+        self.p_des[3][0] = msg.data[3]
+
+        self.p_des[4][0] = msg.data[4]
+        self.p_des[5][0] = msg.data[5]
+
+        self.p_des[6][0] = msg.data[6]
+        self.p_des[7][0] = msg.data[7]
 
 
     def compute_dist(self, corners):
