@@ -4,7 +4,7 @@
   <arg name="color"               default="White"/>
   <arg name="x"                   default="0"/>
   <arg name="y"                   default="0"/>
-  <arg name="z"                   default="0.1"/>
+  <arg name="z"                   default="10.0"/>
   <arg name="yaw"                 default="0"/>
 
   <arg name="aruco_name"          default="aruco_marker"/>
@@ -71,6 +71,11 @@
     <!-- Waypoint Manager -->
     <node name="waypoint_manager" pkg="ibvs_sim" type="ibvs_state_machine.py" output="screen">
       <param name ="mode" value="roscopter" />
+
+      <remap from="estimate" to="ground_truth/odometry/NED"/>
+      <!-- <remap from="estimate" to="estimate"/> -->
+
+      <param name="wp_threshold" value="0.5" />
     </node>
 
     <!-- plot states -->
@@ -85,17 +90,17 @@
   <!-- IBVS_SIM -->
   <!-- ........ -->
 
+  <!-- Load IBVS parameters -->
+  <rosparam command="load" file="$(find ibvs_sim)/params/ibvs.yaml"/>
+
   <!-- level-frame mapper -->
-  <node pkg="ibvs_sim" type="level_frame_mapper.py" name="level_frame_mapper" output="screen">
+  <node name="level_frame_mapper_outer" pkg="ibvs_sim" type="level_frame_mapper.py" output="screen">
     <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/>
     <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
   </node>
 
   <!-- IBVS -->
-  <!-- Load IBVS parameters -->
-  <rosparam command="load" file="$(find ibvs_sim)/params/ibvs.yaml"/>
-
-  <node pkg="ibvs_sim" type="ibvs.py" name="ibvs" output="screen" />
+  <node pkg="ibvs_sim" type="ibvs_4dof.py" name="ibvs" output="screen" />
 
   <!-- Level-frame visualizer -->
   <node pkg="ibvs_sim" type="level_frame_visualizer.py" name="level_frame_visualizer" output="screen">
@@ -127,8 +132,8 @@
 
   <!-- Wind Publisher -->
   <node name="wind_publisher" pkg="ibvs_sim" type="wind.py">
-    <param name="wind_N" value="0.0" />
-    <param name="wind_E" value="0.0" />
+    <param name="wind_N" value="-5.0" />
+    <param name="wind_E" value="5.0" />
   </node>
 
   <!-- Target Publisher -->

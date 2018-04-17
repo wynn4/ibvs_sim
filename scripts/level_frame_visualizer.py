@@ -26,21 +26,12 @@ class LevelFrameVisualizer(object):
         ## initialize other class variables
 
         # image size
-        # TODO get these params automatically
-        self.img_w = 1288
-        self.img_h = 964
-
-        # camera params
-        self.K = np.zeros((3,3))
-        self.d = np.zeros(5)
-        self.fx = 0.0
-        self.fy = 0.0
-        self.cx = 0.0
-        self.cy = 0.0
-        self.f = 0.0
+        # Initialize to something non-zero
+        self.img_w = 640
+        self.img_h = 480
 
         # visualization params
-        self.show = rospy.get_param('~show', False)
+        self.show = rospy.get_param('~show', True)
         shape = (self.img_h, self.img_w, 3)
         self.level_frame = np.zeros(shape, np.uint8)
 
@@ -61,28 +52,41 @@ class LevelFrameVisualizer(object):
         self.corners = np.zeros((4,2))
 
         # initialize subscribers
-        self.uv_bar_sub = rospy.Subscriber('/ibvs/uv_bar_lf', FloatList, self.level_frame_corners_callback)
-        self.corner_pix_sub = rospy.Subscriber('/aruco/marker_corners', FloatList, self.corners_callback)
+        self.uv_bar_sub = rospy.Subscriber('/aruco/marker_corners_outer', FloatList, self.corners_callback)
+        self.uv_bar_des_sub = rospy.Subscriber('/ibvs/uv_bar_des', FloatList, self.level_frame_desired_corners_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
         self.ibvs_active_sub = rospy.Subscriber('/quadcopter/ibvs_active', Bool, self.ibvs_active_callback)
 
 
-    def level_frame_corners_callback(self, msg):
+    def corners_callback(self, msg):
 
         # t = time.time()
+        # populate corners matrix
+        self.corners[0][0] = msg.data[0]
+        self.corners[0][1] = msg.data[1]
+
+        self.corners[1][0] = msg.data[2]
+        self.corners[1][1] = msg.data[3]
+
+        self.corners[2][0] = msg.data[4]
+        self.corners[2][1] = msg.data[5]
+
+        self.corners[3][0] = msg.data[6]
+        self.corners[3][1] = msg.data[7]
+
         
         # populate the matrix of (u,v) pixel coordinates in the virtual-level-frame
-        self.uv_bar_lf[0][0] = msg.data[0]   # u1
-        self.uv_bar_lf[0][1] = msg.data[1]   # v1
+        self.uv_bar_lf[0][0] = msg.data[8]   # u1
+        self.uv_bar_lf[0][1] = msg.data[9]   # v1
 
-        self.uv_bar_lf[1][0] = msg.data[2]   # u2
-        self.uv_bar_lf[1][1] = msg.data[3]   # v2
+        self.uv_bar_lf[1][0] = msg.data[10]   # u2
+        self.uv_bar_lf[1][1] = msg.data[11]   # v2
 
-        self.uv_bar_lf[2][0] = msg.data[4]   # u3
-        self.uv_bar_lf[2][1] = msg.data[5]   # v3
+        self.uv_bar_lf[2][0] = msg.data[12]   # u3
+        self.uv_bar_lf[2][1] = msg.data[13]   # v3
 
-        self.uv_bar_lf[3][0] = msg.data[6]   # u4
-        self.uv_bar_lf[3][1] = msg.data[7]   # v4
+        self.uv_bar_lf[3][0] = msg.data[14]   # u4
+        self.uv_bar_lf[3][1] = msg.data[15]   # v4
 
         # print "data:"
         # print "uv_bar_lf: "
@@ -189,38 +193,30 @@ class LevelFrameVisualizer(object):
         # hz_approx = 1.0/elapsed
         # print(hz_approx)
 
+    def level_frame_desired_corners_callback(self, msg):
 
-    def corners_callback(self, msg):
+        self.p_des[0][0] = msg.data[0]
+        self.p_des[1][0] = msg.data[1]
 
-        # populate corners matrix
-        self.corners[0][0] = msg.data[0]
-        self.corners[0][1] = msg.data[1]
+        self.p_des[2][0] = msg.data[2]
+        self.p_des[3][0] = msg.data[3]
 
-        self.corners[1][0] = msg.data[2]
-        self.corners[1][1] = msg.data[3]
+        self.p_des[4][0] = msg.data[4]
+        self.p_des[5][0] = msg.data[5]
 
-        self.corners[2][0] = msg.data[4]
-        self.corners[2][1] = msg.data[5]
-
-        self.corners[3][0] = msg.data[6]
-        self.corners[3][1] = msg.data[7]
+        self.p_des[6][0] = msg.data[6]
+        self.p_des[7][0] = msg.data[7]
 
 
     def camera_info_callback(self, msg):
 
-        # get the Camera Matrix K and distortion params d
-        self.K = np.array(msg.K, dtype=np.float32).reshape((3,3))
-        self.d = np.array(msg.D, dtype=np.float32)
+        # get the image dimensions
+        self.img_w = msg.width
+        self.img_h = msg.height
 
-        self.fx = self.K[0][0]
-        self.fy = self.K[1][1]
-        self.cx = self.K[0][2]
-        self.cy = self.K[1][2]
-
-        self.f = (self.fx + self.fy) / 2.0
-
-        # self.matrix[0][0] = self.fx
-        # self.matrix[1][1] = self.fy
+        # set the level_frame to match the camera frame
+        shape = (self.img_h, self.img_w, 3)
+        self.level_frame = np.zeros(shape, np.uint8)
 
         # just get this data once
         self.camera_info_sub.unregister()

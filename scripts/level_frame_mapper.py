@@ -19,13 +19,9 @@ class LevelFrameMapper(object):
     def __init__(self):
 
         # load ROS params
+        p_des = rospy.get_param('~p_des', [0., 0., 0., 0., 0., 0., 0., 0.])
 
         ## initialize other class variables
-
-        # image size
-        # TODO get these params automatically
-        self.img_w = 1288
-        self.img_h = 964
         
         # matrices to hold corner data
         self.corners = np.zeros((4,1,2))
@@ -46,7 +42,7 @@ class LevelFrameMapper(object):
 
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
-        self.p_des = np.array([-200, -200, 200, -200, 200, 200, -200, 200], dtype=np.float32).reshape(8,1)
+        self.p_des = np.array(p_des, dtype=np.float32).reshape(4,2)
 
         # copter attitude roll and pitch
         self.phi = 0.0
@@ -87,14 +83,16 @@ class LevelFrameMapper(object):
         # initialize rotation from camera frame to virtual level frame
         self.R_c_vlc = np.zeros((3,3))
 
+        # initialize publishers
+        self.uv_bar_pub = rospy.Publisher('/ibvs/uv_bar_lf', FloatList, queue_size=1)
+        self.uv_bar_des_pub = rospy.Publisher('/ibvs/uv_bar_des', FloatList, queue_size=1)
+        self.uv_bar_msg = FloatList()
+        self.uv_bar_des_msg = FloatList()
+
         # initialize subscribers
         self.corner_pix_sub = rospy.Subscriber('/aruco/marker_corners', FloatList, self.corners_callback)
         self.attitude_sub = rospy.Subscriber('/quadcopter/estimate', Odometry, self.attitude_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
-
-        # initialize publishers
-        self.uv_bar_pub = rospy.Publisher('/ibvs/uv_bar_lf', FloatList, queue_size=1)
-        self.uv_bar_msg = FloatList()
 
 
     def corners_callback(self, msg):
@@ -138,9 +136,37 @@ class LevelFrameMapper(object):
 
         corners_undist = corners_undist.reshape(4,2)
 
-        # now we have a 4x2 matirx of undistorted center-relative corner pixel locations
+        # Transform the desired marker corner locations into the VLF 
+        # desired_corners_vlf = self.transform_to_vlf(self.p_des)
+
+        # Transform the actual marker corners into the VLF (input is 4x2 matrix of corners)
+        actual_corners_vlf = self.transform_to_vlf(corners_undist)
+
+        # fill out the FloatList messages
+        # Desired corner loctions
+        self.uv_bar_des_msg.header.frame_id = 'level-frame_corners'
+        self.uv_bar_des_msg.header.stamp = msg.header.stamp # same as the incoming message
+        self.uv_bar_des_msg.data = self.p_des.flatten().tolist()  # flatten and convert to list type
+
+        # Actual corner locations
+        self.uv_bar_msg.header.frame_id = 'level-frame_corners'
+        self.uv_bar_msg.header.stamp = msg.header.stamp # same as the incoming message
+        self.uv_bar_msg.data = actual_corners_vlf.flatten().tolist()  # flatten and convert to list type
+
+        # publish
+        self.uv_bar_des_pub.publish(self.uv_bar_des_msg)
+        self.uv_bar_pub.publish(self.uv_bar_msg)
+
+        # elapsed = time.time() - t
+        # hz_approx = 1.0/elapsed
+        # print(hz_approx)
+
+
+    def transform_to_vlf(self, corners):
+
+        # corners is a 4x2 matirx of undistorted center-relative corner pixel locations
         # store in a 3x4 matrix augmented with focal length (for convienience) and save for later
-        uvf = np.concatenate((corners_undist.T, self.f_row), axis=0)    # 3x4
+        uvf = np.concatenate((corners.T, self.f_row), axis=0)    # 3x4
 
         # setup rotations
 
@@ -192,26 +218,10 @@ class LevelFrameMapper(object):
         self.uv_bar_lf[3][0] = self.f * (hom[0][3]/hom[2][3])   # u4
         self.uv_bar_lf[3][1] = self.f * (hom[1][3]/hom[2][3])   # v4
 
-        # print "data:"
-        # print "uv_bar_lf: "
-        # print(self.uv_bar_lf)
-        # print "\n"
+        # return a copy of 
+        return self.uv_bar_lf.copy()
 
-        # print "uv_bar_cam: "
-        # print(corners_undist)
-        # print "\n"
 
-        # fill out the FloatList message
-        self.uv_bar_msg.header.frame_id = 'level-frame_corners'
-        self.uv_bar_msg.header.stamp = msg.header.stamp # same as the incoming message
-        self.uv_bar_msg.data = self.uv_bar_lf.flatten().tolist()  # flatten and convert to list type
-
-        # publish
-        self.uv_bar_pub.publish(self.uv_bar_msg)
-
-        # elapsed = time.time() - t
-        # hz_approx = 1.0/elapsed
-        # print(hz_approx)
 
 
     def attitude_callback(self, msg):
