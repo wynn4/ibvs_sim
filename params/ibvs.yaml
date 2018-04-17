@@ -1,13 +1,13 @@
 ### params for IBVS nodes ###
 ### Waypoints ###
 
-ibvs: {
+level_frame_mapper_outer: {
 
 p_des: [-200, -200, 200, -200, 200, 200, -200, 200]
 
 }
 
-ibvs_inner: {
+level_frame_mapper_inner: {
 
 p_des: [-150, -150, 150, -150, 150, 150, -150, 150]
 

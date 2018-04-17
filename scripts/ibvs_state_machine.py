@@ -187,6 +187,7 @@ class StateMachine():
             # print "reset"
 
         # if the ArUco has been in sight for a while
+        # if False:
         if (self.ibvs_count > self.count_outer_req or self.ibvs_count_inner > self.count_inner_req) and self.status_flag == 'IBVS':
             
             self.ibvs_active_msg.data = True

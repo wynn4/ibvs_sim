@@ -67,10 +67,10 @@ class ImageBasedVisualServoing(object):
         self.z_c = 10.0  # initialize to be greater than zero
 
         # positive definite weighting matrix W from Lee eq. 10 (tuning param)
-        self.W = pixel_size * np.diag([0.1, 0.1, 10., 1., 1., 1.])
+        self.W = pixel_size * np.diag([0.1, 0.1, 10., 1.])
 
         # lambda from Corke eq. 15.11 (turning param)
-        self.lam = np.array([2.0, 2.0, 1.0, 1.0, 1.0, 1.0], dtype=np.float32).reshape(6,1)  # 6x1
+        self.lam = np.array([1.0, 1.0, 1.0, 1.0], dtype=np.float32).reshape(4,1)  # 4x1
 
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
@@ -109,29 +109,29 @@ class ImageBasedVisualServoing(object):
 
         # Level-frame corners are elements 8 to 15 on this topic
 
-        # formulate image Jacobians according to eq(5)
+        # formulate image Jacobians according to eq(5) but ignore the angular x and y velocity terms
         u1 = msg.data[8]
         v1 = msg.data[9]
-        Jp1 = np.array([[-self.f/self.z_c, 0.0, u1/self.z_c, u1*v1/self.f, -(self.f**2 + u1**2)/self.f, v1],
-                        [0.0, -self.f/self.z_c, v1/self.z_c, (self.f**2 + v1**2)/self.f, -u1*v1/self.f, -u1]])  # 2x6
+        Jp1 = np.array([[-self.f/self.z_c, 0.0, u1/self.z_c, v1],
+                        [0.0, -self.f/self.z_c, v1/self.z_c, -u1]])  # 2x4
         
         u2 = msg.data[10]
         v2 = msg.data[11]
-        Jp2 = np.array([[-self.f/self.z_c, 0.0, u2/self.z_c, u2*v2/self.f, -(self.f**2 + u2**2)/self.f, v2],
-                        [0.0, -self.f/self.z_c, v2/self.z_c, (self.f**2 + v2**2)/self.f, -u2*v2/self.f, -u2]])  # 2x6
+        Jp2 = np.array([[-self.f/self.z_c, 0.0, u2/self.z_c, v2],
+                        [0.0, -self.f/self.z_c, v2/self.z_c, -u2]])  # 2x4
 
         u3 = msg.data[12]
         v3 = msg.data[13]
-        Jp3 = np.array([[-self.f/self.z_c, 0.0, u3/self.z_c, u3*v3/self.f, -(self.f**2 + u3**2)/self.f, v3],
-                        [0.0, -self.f/self.z_c, v3/self.z_c, (self.f**2 + v3**2)/self.f, -u3*v3/self.f, -u3]])  # 2x6
+        Jp3 = np.array([[-self.f/self.z_c, 0.0, u3/self.z_c, v3],
+                        [0.0, -self.f/self.z_c, v3/self.z_c, -u3]])  # 2x4
 
         u4 = msg.data[14]
         v4 = msg.data[15]
-        Jp4 = np.array([[-self.f/self.z_c, 0.0, u4/self.z_c, u4*v4/self.f, -(self.f**2 + u4**2)/self.f, v4],
-                        [0.0, -self.f/self.z_c, v4/self.z_c, (self.f**2 + v4**2)/self.f, -u4*v4/self.f, -u4]])  # 2x6
+        Jp4 = np.array([[-self.f/self.z_c, 0.0, u4/self.z_c, v4],
+                        [0.0, -self.f/self.z_c, v4/self.z_c, -u4]])  # 2x4
 
         # stack the Jacobians
-        Jp = np.vstack((Jp1, Jp2, Jp3, Jp4))  # 8x6
+        Jp = np.vstack((Jp1, Jp2, Jp3, Jp4))  # 8x4
 
         # formulate the error term e = p - p_des
         p = np.array([u1, v1, u2, v2, u3, v3, u4, v4]).reshape(8,1)
@@ -148,29 +148,23 @@ class ImageBasedVisualServoing(object):
             # rdot_des = -self.W * Jp.T * e
             rdot_des = - self.W.dot(Jp.T).dot(e)  # Lee eq. 10
 
-        e_avg = np.mean(e)
-        # print "Average pixel error: %f" % e_avg
-        print "error: "
-        print(e)
-        print "\n"
-        print "Jp inverse: "
-        print(np.linalg.pinv(Jp))
-        print "\n"
-        print "Yvel_cam: "
-        print(rdot_des[1][0])
-        print "\n"
-        print "Xang_cam: "
-        print(rdot_des[3][0])
-        print "\n"
+        # e_avg = np.mean(e)
+        # # print "Average pixel error: %f" % e_avg
+        # print "error: "
+        # print(e)
+        # print "\n"
+        # print "Jp inverse: "
+        # print(np.linalg.pinv(Jp))
+        # print "\n"
 
         # break rdot_des into its linear and angular components
         rdot_des_linear = rdot_des[:3][:]  # 3x1 [vx, vy, vz].T
-        rdot_des_angular = rdot_des[3:][:]  # 3x1 [wx, wy, wz].T
+        rdot_des_angular = rdot_des[3:][:]  # 1x1 [wz]
 
         # rotate rdot_des from the virtual level camera frame into the vehicle 1 frame
         # TODO maybe we should rotate all the way into the body frame???
         v_des_v1_linear = np.dot(self.R_vlc_v1, rdot_des_linear)  # 3x1
-        v_des_v1_angular = np.dot(self.R_vlc_v1, rdot_des_angular)  # 3x1
+        # v_des_v1_angular = np.dot(self.R_vlc_v1, rdot_des_angular)  # 3x1
 
         # print "\nv_des_linear: ", '\n', v_des_v1_linear
         
@@ -179,9 +173,9 @@ class ImageBasedVisualServoing(object):
         self.vel_cmd_msg.linear.y = self.saturate(v_des_v1_linear[1][0], self.v_max, -self.v_max)
         self.vel_cmd_msg.linear.z = self.saturate(v_des_v1_linear[2][0], self.w_max, -self.w_max)
 
-        self.vel_cmd_msg.angular.x = v_des_v1_angular[0][0]
-        self.vel_cmd_msg.angular.y = v_des_v1_angular[1][0]
-        self.vel_cmd_msg.angular.z = self.saturate(v_des_v1_angular[2][0], self.psidot_max, -self.psidot_max)
+        self.vel_cmd_msg.angular.x = 0
+        self.vel_cmd_msg.angular.y = 0
+        self.vel_cmd_msg.angular.z = self.saturate(rdot_des_angular, self.psidot_max, -self.psidot_max)
 
         # publish
         self.vel_cmd_pub.publish(self.vel_cmd_msg)
