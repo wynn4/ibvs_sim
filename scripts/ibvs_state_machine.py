@@ -187,8 +187,8 @@ class StateMachine():
             # print "reset"
 
         # if the ArUco has been in sight for a while
-        if False:
-        # if (self.ibvs_count > self.count_outer_req or self.ibvs_count_inner > self.count_inner_req) and self.status_flag == 'IBVS':
+        # if False:
+        if (self.ibvs_count > self.count_outer_req or self.ibvs_count_inner > self.count_inner_req) and self.status_flag == 'IBVS':
             
             self.ibvs_active_msg.data = True
 
@@ -238,7 +238,7 @@ class StateMachine():
             if now - self.wind_calc_time > self.wind_calc_duration:
                 self.roll_avg = sum(self.phi_queue)/len(self.phi_queue)
                 self.pitch_avg = sum(self.theta_queue)/len(self.theta_queue)
-                # self.wind_offset = self.compute_rendezvous_offset(self.roll_avg, self.pitch_avg)
+                self.wind_offset = self.compute_rendezvous_offset(self.roll_avg, self.pitch_avg)
                 self.wp_N = self.target_N + self.wind_offset[0][0]
                 self.wp_E = self.target_E + self.wind_offset[1][0]
                 self.wind_calc_completed = True

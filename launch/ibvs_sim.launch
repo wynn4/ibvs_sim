@@ -100,7 +100,7 @@
   </node>
 
   <!-- IBVS -->
-  <node pkg="ibvs_sim" type="ibvs.py" name="ibvs" output="screen" />
+  <node pkg="ibvs_sim" type="ibvs_4dof.py" name="ibvs" output="screen" />
 
   <!-- Level-frame visualizer -->
   <node pkg="ibvs_sim" type="level_frame_visualizer.py" name="level_frame_visualizer" output="screen">
@@ -132,8 +132,8 @@
 
   <!-- Wind Publisher -->
   <node name="wind_publisher" pkg="ibvs_sim" type="wind.py">
-    <param name="wind_N" value="-10.0" />
-    <param name="wind_E" value="-10.0" />
+    <param name="wind_N" value="-5.0" />
+    <param name="wind_E" value="5.0" />
   </node>
 
   <!-- Target Publisher -->

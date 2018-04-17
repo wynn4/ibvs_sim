@@ -22,11 +22,6 @@ class LevelFrameMapper(object):
         p_des = rospy.get_param('~p_des', [0., 0., 0., 0., 0., 0., 0., 0.])
 
         ## initialize other class variables
-
-        # image size
-        # TODO get these params automatically
-        self.img_w = 1288
-        self.img_h = 964
         
         # matrices to hold corner data
         self.corners = np.zeros((4,1,2))
