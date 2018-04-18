@@ -9,6 +9,7 @@ from std_msgs.msg import Bool
 from std_msgs.msg import Float32
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Point
 from rosflight_msgs.msg import Command
 from mavros_msgs.msg import PositionTarget
 from mavros_msgs.srv import SetMode
@@ -156,6 +157,7 @@ class StateMachine():
         self.state_sub = rospy.Subscriber('estimate', Odometry, self.state_callback)
         self.command_pub_roscopter = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
         self.command_pub_mavros = rospy.Publisher('/mavros/setpoint_raw/local', PositionTarget, queue_size=1)
+        self.avg_attitude_pub = rospy.Publisher('/quadcopter/attitude_avg', Point, queue_size=1)
         self.ibvs_active_pub_ = rospy.Publisher('ibvs_active', Bool, queue_size=1)
 
         # Set Up Service Proxy
@@ -165,6 +167,9 @@ class StateMachine():
         self.ibvs_active_msg.data = False
 
         # Initialize timers.
+        self.avg_attitude_rate = 1.0
+        self.avg_attitude_timer = rospy.Timer(rospy.Duration(1.0/self.avg_attitude_rate), self.send_avg_attitude)
+
         self.status_update_rate = 5.0
         self.status_timer = rospy.Timer(rospy.Duration(1.0/self.status_update_rate), self.update_status)
 
@@ -362,6 +367,17 @@ class StateMachine():
 
             # Publish.
             self.command_pub_roscopter.publish(wp_command_msg)
+
+
+    def send_avg_attitude(self, event):
+
+        # Fill out the message
+        avg_attitude_msg = Point()
+        avg_attitude_msg.x = self.roll_avg
+        avg_attitude_msg.y = self.pitch_avg
+        avg_attitude_msg.z = self.psi
+
+        self.avg_attitude_pub.publish(avg_attitude_msg)
 
 
     def compute_rendezvous_offset(self, phi, theta):

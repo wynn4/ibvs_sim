@@ -53,7 +53,7 @@ class LevelFrameVisualizer(object):
 
         # initialize subscribers
         self.uv_bar_sub = rospy.Subscriber('/aruco/marker_corners_outer', FloatList, self.corners_callback)
-        self.uv_bar_des_sub = rospy.Subscriber('/ibvs/uv_bar_des', FloatList, self.level_frame_desired_corners_callback)
+        self.uv_bar_des_sub = rospy.Subscriber('/ibvs/pdes', FloatList, self.level_frame_desired_corners_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
         self.ibvs_active_sub = rospy.Subscriber('/quadcopter/ibvs_active', Bool, self.ibvs_active_callback)
 
