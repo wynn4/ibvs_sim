@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:property name="empty_inertia">
+    <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.001" />
+  </xacro:property>
+
+  <xacro:macro
+    name="simple_camera"
+    params="namespace
+            frame_rate
+            rgb_range
+            image_topic
+            camera_info_topic
+            parent_link
+            *origin">
+    <link name="${namespace}/camera_base_link">
+      <inertial>
+        <mass value="0.001"/>
+        <xacro:insert_block name="origin"/>
+        <xacro:insert_block name="empty_inertia"/>
+      </inertial>
+    </link>
+
+    <joint name="${namespace}/camera_joint" type="fixed">
+      <xacro:insert_block name="origin"/>
+      <parent link="${parent_link}"/>
+      <child link="${namespace}/camera_base_link"/>
+      <limit upper="0" lower="0" effort="0" velocity="0"/>
+    </joint>
+
+    <gazebo reference="${namespace}/camera_base_link">
+      <sensor type="camera" name="${namespace}/camera">
+        <always_on>true</always_on>
+        <update_rate>${frame_rate}</update_rate>
+        <camera>
+          <horizontal_fov>1.36136</horizontal_fov>
+          <image>
+            <format>R8G8B8</format>
+            <width>1288</width>
+            <height>964</height>
+          </image>
+          <clip>
+            <near>0.01</near>
+            <far>${rgb_range}</far>
+          </clip>
+        </camera>
+        <plugin name="${namespace}_camera" filename="libmagicc_sim_camera_plugin.so">
+          <robotNamespace>${namespace}</robotNamespace>
+          <alwaysOn>true</alwaysOn>
+          <updateRate>${frame_rate}</updateRate>
+          <cameraName>camera</cameraName>
+          <imageTopicName>${image_topic}</imageTopicName>
+          <cameraInfoTopicName>${camera_info_topic}</cameraInfoTopicName>
+          <frameName>/chase_camera_base_link</frameName>
+          <distortionK1>-0.214652</distortionK1>
+          <distortionK2>0.222442</distortionK2>
+          <distortionK3>0.000000</distortionK3>
+          <distortionT1>0.000649</distortionT1>
+          <distortionT2>-0.000781</distortionT2>
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+
+</robot>

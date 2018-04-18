@@ -12,7 +12,7 @@ Author: James Jackson
   <!-- Properties -->
   <xacro:property name="namespace" value="quadcopter" />
   <xacro:property name="use_mesh_file" value="true" />
-  <xacro:property name="mesh_file" value="model://quadrotor/meshes/quadrotor_base.dae" />
+  <xacro:property name="mesh_file" value="$(find magicc_sim)/meshes/firefly.dae" />
   <xacro:property name="mass" value="2.856" />
   <xacro:property name="body_width" value="0.505" />
   <xacro:property name="body_height" value="0.1" />
@@ -96,7 +96,7 @@ Author: James Jackson
   <xacro:gps_plugin_macro namespace="${namespace}" parent_link="${namespace}/base_link"/>
 
   <!-- Fixed Camera -->
-  <xacro:include filename="$(find ibvs_sim)/plugins/xacro/chameleon3_cam.xacro"/>
+  <xacro:include filename="$(find ibvs_sim)/plugins/xacro/chameleon3_3_6mm.xacro"/>
   <xacro:simple_camera
     namespace="${namespace}"
     frame_rate="30"
