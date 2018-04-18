@@ -93,6 +93,43 @@ class FeatureMapper(object):
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
 
 
+    def avg_attitude_callback(self, msg):
+
+        # update class variables
+        self.phi_avg = msg.x
+        self.theta_avg = msg.y
+        self.psi_avg = msg.z
+
+        p_des_vlf = self.transform_to_vlf(self.p_des)
+
+        self.uv_bar_des_msg.header.frame_id = 'level-frame_corners_desired'
+        self.uv_bar_des_msg.header.stamp = rospy.Time.now()
+        self.uv_bar_des_msg.data = p_des_vlf.flatten().tolist()  # flatten and convert to list type
+
+        # publish
+        self.uv_bar_des_pub.publish(self.uv_bar_des_msg)
+
+
+    def camera_info_callback(self, msg):
+
+        # get the Camera Matrix K and distortion params d
+        self.K = np.array(msg.K, dtype=np.float32).reshape((3,3))
+        self.d = np.array(msg.D, dtype=np.float32)
+
+        self.fx = self.K[0][0]
+        self.fy = self.K[1][1]
+        self.cx = self.K[0][2]
+        self.cy = self.K[1][2]
+
+        self.f = (self.fx + self.fy) / 2.0
+
+        self.f_row[0][:] = self.f
+
+        # just get this data once
+        self.camera_info_sub.unregister()
+        print("p_des_mapper: Got camera info!")
+
+
     def transform_to_vlf(self, corners):
 
         # corners is a 4x2 matirx of undistorted center-relative corner pixel locations
@@ -151,43 +188,6 @@ class FeatureMapper(object):
 
         # return a copy of 
         return self.uv_bar_lf.copy()
-
-
-    def avg_attitude_callback(self, msg):
-
-        # update class variables
-        self.phi_avg = msg.x
-        self.theta_avg = msg.y
-        self.psi_avg = msg.z
-
-        p_des_vlf = self.transform_to_vlf(self.p_des)
-
-        self.uv_bar_des_msg.header.frame_id = 'level-frame_corners desired'
-        self.uv_bar_des_msg.header.stamp = rospy.Time.now()
-        self.uv_bar_des_msg.data = p_des_vlf.flatten().tolist()  # flatten and convert to list type
-
-        # publish
-        self.uv_bar_des_pub.publish(self.uv_bar_des_msg)
-
-
-    def camera_info_callback(self, msg):
-
-        # get the Camera Matrix K and distortion params d
-        self.K = np.array(msg.K, dtype=np.float32).reshape((3,3))
-        self.d = np.array(msg.D, dtype=np.float32)
-
-        self.fx = self.K[0][0]
-        self.fy = self.K[1][1]
-        self.cx = self.K[0][2]
-        self.cy = self.K[1][2]
-
-        self.f = (self.fx + self.fy) / 2.0
-
-        self.f_row[0][:] = self.f
-
-        # just get this data once
-        self.camera_info_sub.unregister()
-        print("p_des_mapper: Got camera info!")
 
 
 

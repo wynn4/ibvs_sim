@@ -50,7 +50,7 @@ class StateMachine():
         self.count_outer_req = rospy.get_param('~count_outer', 100)
         self.count_inner_req = rospy.get_param('~count_inner', 50)
 
-        self.rendezvous_height = rospy.get_param('~rendezvous_height', 15.0)
+        self.rendezvous_height = rospy.get_param('~rendezvous_height', 10.0)
         self.wp_threshold = rospy.get_param('~wp_threshold', 1.0)
 
         self.wp_error = 1.0e3
