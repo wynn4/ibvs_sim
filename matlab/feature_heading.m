@@ -5,7 +5,7 @@ close all
 % load camera
 % cam = CentralCamera('default');
 
-heading_angle = deg2rad(15.0);
+heading_angle = deg2rad(180);
 
 width = 1280;
 height = 1024;
@@ -33,6 +33,10 @@ P = [P1, P2, P3, P4];
 pixels = cam.project(P);
 x_pix = pixels(1,:)' - width/2;
 y_pix = pixels(2,:)' - height/2;
+
+% add some noise
+x_pix = x_pix + rand(4,1);
+y_pix = y_pix + rand(4,1);
 
 figure(1), clf
 subplot(1,2,1)
@@ -75,6 +79,8 @@ vec1 = p1 - p4
 p1
 p4
 
+vec2 = p2 - p3
+
 
 % define rotation from camera frame (level) to vehicle-1 frame (just the x and y components of each)
 R_c_v1 = [0, -1; ...
@@ -82,8 +88,13 @@ R_c_v1 = [0, -1; ...
       
 % rotate into vehicle-1 frame
 vec1_v1 = R_c_v1*vec1;
+vec2_v1 = R_c_v1*vec2;
 
-heading = rad2deg(atan2(vec1_v1(2),vec1_v1(1)))
+heading1 = rad2deg(atan2(vec1_v1(2),vec1_v1(1)))
+
+heading2 = rad2deg(atan2(vec2_v1(2),vec2_v1(1)))
+
+heading = (heading1 + heading2) / 2.0
 
 
 
