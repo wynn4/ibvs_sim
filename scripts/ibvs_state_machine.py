@@ -7,6 +7,7 @@
 import rospy
 from std_msgs.msg import Bool
 from std_msgs.msg import Float32
+from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Point
@@ -37,6 +38,8 @@ class StateMachine():
 
         # Initialize status flag
         self.status_flag = 'RENDEZVOUS'
+        self.status_flag_msg = String()
+        self.status_flag_msg.data = self.status_flag
 
         # Velocity saturation values
         self.u_max = rospy.get_param('~u_max', 0.5)
@@ -63,11 +66,14 @@ class StateMachine():
         self.wp_N = 0.0
         self.wp_E = 0.0
         self.wp_D = -self.rendezvous_height
+        self.heading_command = np.radians(-20.0)
 
         self.wind_calc_completed = False
         self.wind_window_seconds = 5
         self.wind_calc_duration = 5.0
         self.wind_offset = np.zeros((3,1), dtype=np.float32)
+
+        self.heading_correction_completed = False
 
         # Initialize queues
         if self.mode_flag == 'mavros':
@@ -154,11 +160,13 @@ class StateMachine():
         self.ibvs_sub = rospy.Subscriber('/ibvs/vel_cmd', Twist, self.ibvs_velocity_cmd_callback, queue_size=1)
         self.ibvs_inner_sub = rospy.Subscriber('/ibvs_inner/vel_cmd', Twist, self.ibvs_velocity_cmd_inner_callback, queue_size=1)
         self.aruco_sub = rospy.Subscriber('/aruco/distance_inner', Float32, self.aruco_inner_distance_callback)
+        self.aruco_heading_sub = rospy.Subscriber('/aruco/heading_outer', Float32, self.aruco_relative_heading_callback)
         self.state_sub = rospy.Subscriber('estimate', Odometry, self.state_callback)
         self.command_pub_roscopter = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
         self.command_pub_mavros = rospy.Publisher('/mavros/setpoint_raw/local', PositionTarget, queue_size=1)
         self.avg_attitude_pub = rospy.Publisher('/quadcopter/attitude_avg', Point, queue_size=1)
         self.ibvs_active_pub_ = rospy.Publisher('ibvs_active', Bool, queue_size=1)
+        self.status_flag_pub = rospy.Publisher('/status_flag', String, queue_size=1)
 
         # Set Up Service Proxy
         self.set_mode_srv = rospy.ServiceProxy('/mavros/set_mode', SetMode)
@@ -225,6 +233,7 @@ class StateMachine():
 
 
     def update_status(self, event):
+        # print self.status_flag
 
         self.update_wp_error()
 
@@ -234,6 +243,9 @@ class StateMachine():
                 # Switch to wind calibration status
                 self.status_flag = 'WIND_CALIBRATION'
                 self.wind_calc_time = rospy.get_time()
+            elif self.wind_calc_completed == True and self.heading_correction_completed == False:
+                # Perform initial heading correction
+                self.status_flag = 'HEADING_CORRECTION'
             else:
                 self.status_flag = 'IBVS'
 
@@ -249,6 +261,20 @@ class StateMachine():
                 self.wind_calc_completed = True
                 self.status_flag = 'RENDEZVOUS'
                 print "Average roll angle: %f \nAverage pitch angle: %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg))
+
+        if self.status_flag == 'HEADING_CORRECTION':
+
+            if self.heading_correction_completed == False:
+                des_heading = self.psi + self.relative_heading
+                while des_heading > np.radians(180.0):  des_heading = des_heading - radians(360.0)
+                while des_heading < np.radians(-180.0):  des_heading = des_heading + radians(360.0)
+                self.heading_command = des_heading
+                self.heading_correction_completed = True
+            if abs(self.relative_heading) <= np.radians(5.0):
+                self.status_flag = 'RENDEZVOUS'
+
+        self.status_flag_msg.data = self.status_flag
+        self.status_flag_pub.publish(self.status_flag_msg)
 
 
     def execute_landing(self):
@@ -352,7 +378,7 @@ class StateMachine():
             waypoint_command_msg.position.y = self.wp_N  # N
             waypoint_command_msg.position.z = self.rendezvous_height  # U
 
-            waypoint_command_msg.yaw = np.radians(0.0)  # Point North?
+            waypoint_command_msg.yaw = self.heading_command  # Point North?
 
             # Publish.
             self.command_pub_mavros.publish(waypoint_command_msg)
@@ -362,7 +388,7 @@ class StateMachine():
             wp_command_msg.x = self.wp_N
             wp_command_msg.y = self.wp_E
             wp_command_msg.F = -self.rendezvous_height
-            wp_command_msg.z = np.radians(0.0)
+            wp_command_msg.z = self.heading_command
             wp_command_msg.mode = Command.MODE_XPOS_YPOS_YAW_ALTITUDE
 
             # Publish.
@@ -515,6 +541,12 @@ class StateMachine():
     def aruco_inner_distance_callback(self, msg):
 
         self.distance = msg.data
+        # print(self.distance)
+
+
+    def aruco_relative_heading_callback(self, msg):
+
+        self.relative_heading = msg.data
         # print(self.distance)
 
 
