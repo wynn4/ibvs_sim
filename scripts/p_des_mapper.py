@@ -4,6 +4,7 @@
 ## JSW April 2018
 
 import rospy
+from std_msgs.msg import Bool
 from sensor_msgs.msg import CameraInfo
 from nav_msgs.msg import Odometry
 from aruco_localization.msg import FloatList
@@ -18,8 +19,8 @@ class FeatureMapper(object):
 
     def __init__(self):
 
-        # Desired feature locations in the camera frame
-        p_des = rospy.get_param('~p_des', [0., 0., 0., 0., 0., 0., 0., 0.])
+        # Desired feature locations in the actual camera frame
+        p_des_final = rospy.get_param('~p_des', [0., 0., 0., 0., 0., 0., 0., 0.])
 
         ## initialize other class variables
         
@@ -41,7 +42,8 @@ class FeatureMapper(object):
 
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
-        self.p_des = np.array(p_des, dtype=np.float32).reshape(4,2)
+        self.p_des = np.array(p_des_final, dtype=np.float32).reshape(4,2)
+        self.p_des0 = np.zeros((4,2), dtype=np.float32)
 
         # copter average attitude roll and pitch
         self.phi_avg = 0.0
@@ -82,6 +84,9 @@ class FeatureMapper(object):
         # initialize rotation from camera frame to virtual level frame
         self.R_c_vlc = np.zeros((3,3))
 
+        self.ibvs_active = False
+        self.p_des0_set = False
+
         # initialize publishers
         self.uv_bar_des_pub = rospy.Publisher('/ibvs/pdes', FloatList, queue_size=1)
         self.uv_bar_des_msg = FloatList()
@@ -90,7 +95,23 @@ class FeatureMapper(object):
         # self.corner_pix_sub = rospy.Subscriber('/aruco/marker_corners', FloatList, self.corners_callback)
         # self.attitude_sub = rospy.Subscriber('/quadcopter/estimate', Odometry, self.attitude_callback)
         self.avg_attitude_sub = rospy.Subscriber('/quadcopter/attitude_avg', Point, self.avg_attitude_callback)
+        self.marker_corners_sub = rospy.Subscriber('/aruco/marker_corners_outer', FloatList, self.corners_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
+        self.ibvs_active_sub = rospy.Subscriber('/quadcopter/ibvs_active', Bool, self.ibvs_active_callback)
+
+         # Initialize timers.
+        self.p_des_rate = 3.0
+        self.p_des_timer = rospy.Timer(rospy.Duration(1.0/self.p_des_rate), self.send_p_des)
+
+
+    def send_p_des(self, event):
+
+        self.uv_bar_des_msg.header.frame_id = 'level-frame_corners_desired'
+        self.uv_bar_des_msg.header.stamp = rospy.Time.now()
+        self.uv_bar_des_msg.data = self.p_des0.flatten().tolist()  # flatten and convert to list type
+
+        # publish
+        self.uv_bar_des_pub.publish(self.uv_bar_des_msg)
 
 
     def avg_attitude_callback(self, msg):
@@ -102,32 +123,36 @@ class FeatureMapper(object):
 
         p_des_vlf = self.transform_to_vlf(self.p_des)
 
-        self.uv_bar_des_msg.header.frame_id = 'level-frame_corners_desired'
-        self.uv_bar_des_msg.header.stamp = rospy.Time.now()
-        self.uv_bar_des_msg.data = p_des_vlf.flatten().tolist()  # flatten and convert to list type
+        # self.uv_bar_des_msg.header.frame_id = 'level-frame_corners_desired'
+        # self.uv_bar_des_msg.header.stamp = rospy.Time.now()
+        # self.uv_bar_des_msg.data = p_des_vlf.flatten().tolist()  # flatten and convert to list type
 
-        # publish
-        self.uv_bar_des_pub.publish(self.uv_bar_des_msg)
+        # # publish
+        # self.uv_bar_des_pub.publish(self.uv_bar_des_msg)
 
 
-    def camera_info_callback(self, msg):
+    def ibvs_active_callback(self, msg):
 
-        # get the Camera Matrix K and distortion params d
-        self.K = np.array(msg.K, dtype=np.float32).reshape((3,3))
-        self.d = np.array(msg.D, dtype=np.float32)
+        self.ibvs_active = msg.data
 
-        self.fx = self.K[0][0]
-        self.fy = self.K[1][1]
-        self.cx = self.K[0][2]
-        self.cy = self.K[1][2]
 
-        self.f = (self.fx + self.fy) / 2.0
+    def corners_callback(self, msg):
 
-        self.f_row[0][:] = self.f
+        if self.ibvs_active:
+            if not self.p_des0_set:
 
-        # just get this data once
-        self.camera_info_sub.unregister()
-        print("p_des_mapper: Got camera info!")
+                # Fill up p_des0 with the level frame corners where they currently appear
+                self.p_des0[0][0] = msg.data[8]
+                self.p_des0[0][1] = msg.data[9]
+                self.p_des0[1][0] = msg.data[10]
+                self.p_des0[1][1] = msg.data[11]
+                self.p_des0[2][0] = msg.data[12]
+                self.p_des0[2][1] = msg.data[13]
+                self.p_des0[3][0] = msg.data[14]
+                self.p_des0[3][1] = msg.data[15]
+
+                # set the flag
+                self.p_des0_set = True
 
 
     def transform_to_vlf(self, corners):
@@ -190,6 +215,24 @@ class FeatureMapper(object):
         return self.uv_bar_lf.copy()
 
 
+    def camera_info_callback(self, msg):
+
+        # get the Camera Matrix K and distortion params d
+        self.K = np.array(msg.K, dtype=np.float32).reshape((3,3))
+        self.d = np.array(msg.D, dtype=np.float32)
+
+        self.fx = self.K[0][0]
+        self.fy = self.K[1][1]
+        self.cx = self.K[0][2]
+        self.cy = self.K[1][2]
+
+        self.f = (self.fx + self.fy) / 2.0
+
+        self.f_row[0][:] = self.f
+
+        # just get this data once
+        self.camera_info_sub.unregister()
+        print("p_des_mapper: Got camera info!")
 
 
 def main():
