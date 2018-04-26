@@ -6,6 +6,7 @@
 
 import rospy
 from std_msgs.msg import Bool
+from std_msgs.msg import String
 from sensor_msgs.msg import CameraInfo
 from nav_msgs.msg import Odometry
 from aruco_localization.msg import FloatList
@@ -43,6 +44,9 @@ class LevelFrameVisualizer(object):
         self.ibvs_active = False
         self.line_count = 0
 
+        # flag
+        self.status_flag = ''
+
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
         self.p_des = np.array([-200, -200, 200, -200, 200, 200, -200, 200], dtype=np.float32).reshape(8,1)
@@ -56,6 +60,7 @@ class LevelFrameVisualizer(object):
         self.uv_bar_des_sub = rospy.Subscriber('/ibvs/pdes', FloatList, self.level_frame_desired_corners_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
         self.ibvs_active_sub = rospy.Subscriber('/quadcopter/ibvs_active', Bool, self.ibvs_active_callback)
+        self.state_machine_status_sub = rospy.Subscriber('/status_flag', String, self.status_flag_callback)
 
 
     def corners_callback(self, msg):
@@ -180,10 +185,13 @@ class LevelFrameVisualizer(object):
             cv2.line(self.level_frame, (int(self.uv_bar_lf[2][0]+self.img_w/2.0), int(self.uv_bar_lf[2][1]+self.img_h/2.0)), (int(self.p_des[4][0]+self.img_w/2.0), int(self.p_des[5][0]+self.img_h/2.0)), (255, 0, 0))
             cv2.line(self.level_frame, (int(self.uv_bar_lf[3][0]+self.img_w/2.0), int(self.uv_bar_lf[3][1]+self.img_h/2.0)), (int(self.p_des[6][0]+self.img_w/2.0), int(self.p_des[7][0]+self.img_h/2.0)), (255, 0, 0))
 
+            # display the status flag
+            cv2.putText(self.level_frame, "State Machine Status: " + self.status_flag, (50, 25),cv2.FONT_HERSHEY_PLAIN,1.0,(255,255,255),1)
+
             # add some text labels
-            cv2.putText(self.level_frame, "Camera Frame",(100,25),cv2.FONT_HERSHEY_PLAIN,2.0,(0,0,255),2)
-            cv2.putText(self.level_frame, "Virtual Level Frame",(100,55),cv2.FONT_HERSHEY_PLAIN,2.0,(0,255,255),2)
-            cv2.putText(self.level_frame, "Desired Pixel Coordinates (VLF)",(100,85),cv2.FONT_HERSHEY_PLAIN,2.0,(0,255,0),2)
+            cv2.putText(self.level_frame, "Camera Frame",(50,55),cv2.FONT_HERSHEY_PLAIN,1.0,(0,0,255),1)
+            cv2.putText(self.level_frame, "Virtual Level Frame",(50,75),cv2.FONT_HERSHEY_PLAIN,1.0,(0,255,255),1)
+            cv2.putText(self.level_frame, "Desired Pixel Coordinates (VLF)",(50,95),cv2.FONT_HERSHEY_PLAIN,1.0,(0,255,0),1)
 
             # display the image
             cv2.imshow("level_frame_image", self.level_frame)
@@ -226,6 +234,11 @@ class LevelFrameVisualizer(object):
     def ibvs_active_callback(self, msg):
         
         self.ibvs_active = msg.data
+
+
+    def status_flag_callback(self, msg):
+
+        self.status_flag = msg.data
 
 
 
