@@ -104,7 +104,7 @@
 
 
   <!-- IBVS -->
-  <node pkg="ibvs_sim" type="ibvs_4dof.py" name="ibvs" output="screen" />
+  <node pkg="ibvs_sim" type="ibvs.py" name="ibvs" output="screen" />
 
   <!-- Level-frame visualizer -->
   <node pkg="ibvs_sim" type="level_frame_visualizer.py" name="level_frame_visualizer" output="screen">
