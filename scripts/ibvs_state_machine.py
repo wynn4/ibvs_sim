@@ -66,7 +66,7 @@ class StateMachine():
         self.wp_N = 0.0
         self.wp_E = 0.0
         self.wp_D = -self.rendezvous_height
-        self.heading_command = np.radians(-20.0)
+        self.heading_command = np.radians(-179.0)
 
         self.wind_calc_completed = False
         self.wind_window_seconds = 5
@@ -269,8 +269,18 @@ class StateMachine():
                 while des_heading > np.radians(180.0):  des_heading = des_heading - radians(360.0)
                 while des_heading < np.radians(-180.0):  des_heading = des_heading + radians(360.0)
                 self.heading_command = des_heading
+
+                # Update average roll and pitch angles after the yaw manuver (rotate about z-axis by relative heading)
+                psi = self.relative_heading
+                R = np.array([[np.cos(psi), -np.sin(psi)],[np.sin(psi), np.cos(psi)]])
+                roll_pitch = np.dot(R, np.array([[self.roll_avg],[self.pitch_avg]]))
+                self.roll_avg = roll_pitch[0][0]
+                self.pitch_avg = roll_pitch[1][0]
+
+                # print "Average roll angle: %f \nAverage pitch angle: %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg))
+
                 self.heading_correction_completed = True
-            if abs(self.relative_heading) <= np.radians(5.0):
+            if abs(self.relative_heading) <= np.radians(45.0):
                 self.status_flag = 'RENDEZVOUS'
 
         self.status_flag_msg.data = self.status_flag

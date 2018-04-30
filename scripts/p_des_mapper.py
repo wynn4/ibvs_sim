@@ -47,7 +47,10 @@ class FeatureMapper(object):
 
         # copter average attitude roll and pitch
         self.phi_avg = 0.0
-        self.theta_avg = 0.0 
+        self.theta_avg = 0.0
+
+        # side length in pixels of the marker when IBVS first becomes active
+        self.side_length0 = 0.0
 
         # mounting angle offsets
         phi_m = 0.0    # roll relative to the body frame
@@ -151,6 +154,20 @@ class FeatureMapper(object):
                 self.p_des0[3][0] = msg.data[14]
                 self.p_des0[3][1] = msg.data[15]
 
+                # get the average side length of the square formed by the marker corners
+                s1 = np.linalg.norm(self.p_des0[0][:] - self.p_des0[1][:])
+                s2 = np.linalg.norm(self.p_des0[1][:] - self.p_des0[2][:])
+                s3 = np.linalg.norm(self.p_des0[2][:] - self.p_des0[3][:])
+                s4 = np.linalg.norm(self.p_des0[3][:] - self.p_des0[0][:])
+
+                self.side_length0 = (s1 + s2 + s3 + s4) / 4.0
+
+                # get the center of the group of marker corners
+                center = np.array([[np.sum(self.p_des0[:,0])/4.0], [np.sum(self.p_des0[:,1])/4.0]]).reshape(1,2)
+
+                # use the center and side length to make a square of pixel locations that is square (aligned) with the camera frame
+                self.p_des0 = self.make_a_square(center, self.side_length0)
+
                 # set the flag
                 self.p_des0_set = True
 
@@ -213,6 +230,22 @@ class FeatureMapper(object):
 
         # return a copy of 
         return self.uv_bar_lf.copy()
+
+
+    def make_a_square(self, center, side_length):
+
+        diag = np.sqrt(2.0) * side_length
+
+        p0 = center.T + np.array([[-np.sqrt(2)/2],[-np.sqrt(2)/2]]) * (diag / 2.0)
+        p1 = center.T + np.array([[np.sqrt(2)/2],[-np.sqrt(2)/2]]) * (diag / 2.0)
+        p2 = center.T + np.array([[np.sqrt(2)/2],[np.sqrt(2)/2]]) * (diag / 2.0)
+        p3 = center.T + np.array([[-np.sqrt(2)/2],[np.sqrt(2)/2]]) * (diag / 2.0)
+
+        square = np.array([p0.T, p1.T, p2.T, p3.T]).reshape(4,2)
+
+        return square
+
+
 
 
     def camera_info_callback(self, msg):
