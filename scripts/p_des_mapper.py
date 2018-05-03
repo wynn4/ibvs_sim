@@ -20,7 +20,8 @@ class FeatureMapper(object):
     def __init__(self):
 
         # Desired feature locations in the actual camera frame
-        p_des_final = rospy.get_param('~p_des', [0., 0., 0., 0., 0., 0., 0., 0.])
+        p_des_final_outer = rospy.get_param('~p_des_outer', [0., 0., 0., 0., 0., 0., 0., 0.])
+        p_des_final_inner = rospy.get_param('~p_des_inner', [0., 0., 0., 0., 0., 0., 0., 0.])
 
         ## initialize other class variables
         
@@ -42,8 +43,9 @@ class FeatureMapper(object):
 
         # desired pixel coords 
         # [u1, v1, u2, v2, u3, v3, u4, v4].T  8x1
-        self.p_des = np.array(p_des_final, dtype=np.float32).reshape(4,2)
-        self.p_des0 = np.zeros((4,2), dtype=np.float32)
+        self.p_des_outer = np.array(p_des_final_outer, dtype=np.float32).reshape(4,2)
+        self.p_des_inner = np.array(p_des_final_inner, dtype=np.float32).reshape(4,2)
+        # self.p_des0 = np.zeros((4,2), dtype=np.float32)
 
         # copter average attitude roll and pitch
         self.phi_avg = 0.0
@@ -88,11 +90,15 @@ class FeatureMapper(object):
         self.R_c_vlc = np.zeros((3,3))
 
         self.ibvs_active = False
-        self.p_des0_set = False
+        # self.p_des0_set = False
+        self.p_des_expressed_in_vlf = False
 
         # initialize publishers
-        self.uv_bar_des_pub = rospy.Publisher('/ibvs/pdes', FloatList, queue_size=1)
-        self.uv_bar_des_msg = FloatList()
+        self.uv_bar_des_pub_outer = rospy.Publisher('/ibvs/pdes_outer', FloatList, queue_size=1)
+        self.uv_bar_des_msg_outer = FloatList()
+
+        self.uv_bar_des_pub_inner = rospy.Publisher('/ibvs/pdes_inner', FloatList, queue_size=1)
+        self.uv_bar_des_msg_inner = FloatList()
 
         # initialize subscribers
         # self.corner_pix_sub = rospy.Subscriber('/aruco/marker_corners', FloatList, self.corners_callback)
@@ -109,12 +115,18 @@ class FeatureMapper(object):
 
     def send_p_des(self, event):
 
-        self.uv_bar_des_msg.header.frame_id = 'level-frame_corners_desired'
-        self.uv_bar_des_msg.header.stamp = rospy.Time.now()
-        self.uv_bar_des_msg.data = self.p_des0.flatten().tolist()  # flatten and convert to list type
+        # Fill out the messages.
+        self.uv_bar_des_msg_outer.header.frame_id = 'level-frame_corners_desired_outer'
+        self.uv_bar_des_msg_outer.header.stamp = rospy.Time.now()
+        self.uv_bar_des_msg_outer.data = self.p_des_outer.flatten().tolist()  # flatten and convert to list type
 
-        # publish
-        self.uv_bar_des_pub.publish(self.uv_bar_des_msg)
+        self.uv_bar_des_msg_inner.header.frame_id = 'level-frame_corners_desired_inner'
+        self.uv_bar_des_msg_inner.header.stamp = rospy.Time.now()
+        self.uv_bar_des_msg_inner.data = self.p_des_inner.flatten().tolist()
+
+        # Publish.
+        self.uv_bar_des_pub_outer.publish(self.uv_bar_des_msg_outer)
+        self.uv_bar_des_pub_inner.publish(self.uv_bar_des_msg_inner)
 
 
     def avg_attitude_callback(self, msg):
@@ -124,7 +136,7 @@ class FeatureMapper(object):
         self.theta_avg = msg.y
         self.psi_avg = msg.z
 
-        p_des_vlf = self.transform_to_vlf(self.p_des)
+        # p_des_vlf = self.transform_to_vlf(self.p_des)
 
         # self.uv_bar_des_msg.header.frame_id = 'level-frame_corners_desired'
         # self.uv_bar_des_msg.header.stamp = rospy.Time.now()
@@ -142,34 +154,40 @@ class FeatureMapper(object):
     def corners_callback(self, msg):
 
         if self.ibvs_active:
-            if not self.p_des0_set:
 
-                # Fill up p_des0 with the level frame corners where they currently appear
-                self.p_des0[0][0] = msg.data[8]
-                self.p_des0[0][1] = msg.data[9]
-                self.p_des0[1][0] = msg.data[10]
-                self.p_des0[1][1] = msg.data[11]
-                self.p_des0[2][0] = msg.data[12]
-                self.p_des0[2][1] = msg.data[13]
-                self.p_des0[3][0] = msg.data[14]
-                self.p_des0[3][1] = msg.data[15]
+            if not self.p_des_expressed_in_vlf:
+                self.p_des_outer = self.transform_to_vlf(self.p_des_outer)
+                self.p_des_inner = self.transform_to_vlf(self.p_des_inner)
 
-                # get the average side length of the square formed by the marker corners
-                s1 = np.linalg.norm(self.p_des0[0][:] - self.p_des0[1][:])
-                s2 = np.linalg.norm(self.p_des0[1][:] - self.p_des0[2][:])
-                s3 = np.linalg.norm(self.p_des0[2][:] - self.p_des0[3][:])
-                s4 = np.linalg.norm(self.p_des0[3][:] - self.p_des0[0][:])
+                self.p_des_expressed_in_vlf = True
+            # if not self.p_des0_set:
 
-                self.side_length0 = (s1 + s2 + s3 + s4) / 4.0
+            #     # Fill up p_des0 with the level frame corners where they currently appear
+            #     self.p_des0[0][0] = msg.data[8]
+            #     self.p_des0[0][1] = msg.data[9]
+            #     self.p_des0[1][0] = msg.data[10]
+            #     self.p_des0[1][1] = msg.data[11]
+            #     self.p_des0[2][0] = msg.data[12]
+            #     self.p_des0[2][1] = msg.data[13]
+            #     self.p_des0[3][0] = msg.data[14]
+            #     self.p_des0[3][1] = msg.data[15]
 
-                # get the center of the group of marker corners
-                center = np.array([[np.sum(self.p_des0[:,0])/4.0], [np.sum(self.p_des0[:,1])/4.0]]).reshape(1,2)
+            #     # get the average side length of the square formed by the marker corners
+            #     s1 = np.linalg.norm(self.p_des0[0][:] - self.p_des0[1][:])
+            #     s2 = np.linalg.norm(self.p_des0[1][:] - self.p_des0[2][:])
+            #     s3 = np.linalg.norm(self.p_des0[2][:] - self.p_des0[3][:])
+            #     s4 = np.linalg.norm(self.p_des0[3][:] - self.p_des0[0][:])
 
-                # use the center and side length to make a square of pixel locations that is square (aligned) with the camera frame
-                self.p_des0 = self.make_a_square(center, self.side_length0)
+            #     self.side_length0 = (s1 + s2 + s3 + s4) / 4.0
 
-                # set the flag
-                self.p_des0_set = True
+            #     # get the center of the group of marker corners
+            #     center = np.array([[np.sum(self.p_des0[:,0])/4.0], [np.sum(self.p_des0[:,1])/4.0]]).reshape(1,2)
+
+            #     # use the center and side length to make a square of pixel locations that is square (aligned) with the camera frame
+            #     self.p_des0 = self.make_a_square(center, self.side_length0)
+
+            #     # set the flag
+            #     self.p_des0_set = True
 
 
     def transform_to_vlf(self, corners):

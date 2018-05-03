@@ -93,18 +93,15 @@
   <!-- Load IBVS parameters -->
   <rosparam command="load" file="$(find ibvs_sim)/params/ibvs.yaml"/>
 
-  <!-- level-frame mapper -->
-  <!-- <node name="level_frame_mapper_outer" pkg="ibvs_sim" type="level_frame_mapper.py" output="screen"> -->
-    <!-- <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/> -->
-    <!-- <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/> -->
-  <!-- </node> -->
-
   <node name="p_des_mapper" pkg="ibvs_sim" type="p_des_mapper.py" output="screen">
   </node>
 
-
   <!-- IBVS -->
-  <node pkg="ibvs_sim" type="ibvs.py" name="ibvs" output="screen" />
+  <node name="ibvs_outer" pkg="ibvs_sim" type="ibvs.py" output="screen">
+    <remap from="/ibvs/pdes" to="/ibvs/pdes_outer"/>
+    <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
+    <remap from="/aruco/distance" to="/aruco/distance_outer"/>
+  </node>
 
   <!-- Level-frame visualizer -->
   <node pkg="ibvs_sim" type="level_frame_visualizer.py" name="level_frame_visualizer" output="screen">
@@ -135,8 +132,8 @@
   </node>
 
   <!-- Wind Publisher -->
-  <node name="wind_publisher" pkg="ibvs_sim" type="wind.py">
-    <param name="wind_N" value="-15.0" />
+  <node name="wind_publisher" pkg="ibvs_sim" type="wind.py" output="screen">
+    <param name="wind_N" value="-5.0" />
     <param name="wind_E" value="0.0" />
   </node>
 

@@ -57,7 +57,7 @@ class LevelFrameVisualizer(object):
 
         # initialize subscribers
         self.uv_bar_sub = rospy.Subscriber('/aruco/marker_corners_outer', FloatList, self.corners_callback)
-        self.uv_bar_des_sub = rospy.Subscriber('/ibvs/pdes', FloatList, self.level_frame_desired_corners_callback)
+        self.uv_bar_des_sub = rospy.Subscriber('/ibvs/pdes_outer', FloatList, self.level_frame_desired_corners_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
         self.ibvs_active_sub = rospy.Subscriber('/quadcopter/ibvs_active', Bool, self.ibvs_active_callback)
         self.state_machine_status_sub = rospy.Subscriber('/status_flag', String, self.status_flag_callback)
@@ -184,6 +184,14 @@ class LevelFrameVisualizer(object):
             cv2.line(self.level_frame, (int(self.uv_bar_lf[1][0]+self.img_w/2.0), int(self.uv_bar_lf[1][1]+self.img_h/2.0)), (int(self.p_des[2][0]+self.img_w/2.0), int(self.p_des[3][0]+self.img_h/2.0)), (255, 0, 0))
             cv2.line(self.level_frame, (int(self.uv_bar_lf[2][0]+self.img_w/2.0), int(self.uv_bar_lf[2][1]+self.img_h/2.0)), (int(self.p_des[4][0]+self.img_w/2.0), int(self.p_des[5][0]+self.img_h/2.0)), (255, 0, 0))
             cv2.line(self.level_frame, (int(self.uv_bar_lf[3][0]+self.img_w/2.0), int(self.uv_bar_lf[3][1]+self.img_h/2.0)), (int(self.p_des[6][0]+self.img_w/2.0), int(self.p_des[7][0]+self.img_h/2.0)), (255, 0, 0))
+
+            # cross heirs
+            cv2.line(self.level_frame, (int(-5.0 + self.img_w/2.0), int(self.img_h/2.0)), (int(5.0 + self.img_w/2.0), int(self.img_h/2.0)), (255, 255, 255))
+            cv2.line(self.level_frame, (int(self.img_w/2.0), int(-5.0 + self.img_h/2.0)), (int(self.img_w/2.0), int(5.0 + self.img_h/2.0)), (255, 255, 255))
+
+            center = np.array([[np.sum(self.corners[:,0])/4.0], [np.sum(self.corners[:,1])/4.0]]).reshape(1,2)
+            cv2.line(self.level_frame, (int(-5.0 + center[0][0]), int(center[0][1])), (int(5.0 + center[0][0]), int(center[0][1])), (0, 0, 255))
+            cv2.line(self.level_frame, (int(center[0][0]), int(-5.0 + center[0][1])), (int(center[0][0]), int(5.0 + center[0][1])), (0, 0, 255))
 
             # display the status flag
             cv2.putText(self.level_frame, "State Machine Status: " + self.status_flag, (50, 25),cv2.FONT_HERSHEY_PLAIN,1.0,(255,255,255),1)

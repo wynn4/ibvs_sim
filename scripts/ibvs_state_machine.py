@@ -209,7 +209,7 @@ class StateMachine():
 
                 # print(self.distance)
                 # in this case we enter an open-loop drop onto the marker
-                if self.distance < 1.0 and self.distance > 0.1 and self.land_mode_sent == False:
+                if self.distance < 0.5 and self.distance > 0.05 and self.land_mode_sent == False:
 
                     self.execute_landing()
                         
@@ -280,7 +280,7 @@ class StateMachine():
                 # print "Average roll angle: %f \nAverage pitch angle: %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg))
 
                 self.heading_correction_completed = True
-            if abs(self.relative_heading) <= np.radians(45.0):
+            if abs(self.relative_heading) <= np.radians(5.0):
                 self.status_flag = 'RENDEZVOUS'
 
         self.status_flag_msg.data = self.status_flag

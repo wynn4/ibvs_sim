@@ -4,7 +4,7 @@
   <arg name="color"               default="White"/>
   <arg name="x"                   default="0"/>
   <arg name="y"                   default="0"/>
-  <arg name="z"                   default="0.1"/>
+  <arg name="z"                   default="10.0"/>
   <arg name="yaw"                 default="0"/>
 
   <arg name="aruco_name"          default="aruco_marker"/>
@@ -16,7 +16,7 @@
 
   <!-- ArUco args -->
   <arg name="show_camera" default="false" />
-  <arg name="show_aruco_detections" default="true" />
+  <arg name="show_aruco_detections" default="false" />
 
   <!-- Start Simulator -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -65,12 +65,17 @@
     <!-- PID Position Controller -->
     <node name="controller" pkg="ibvs_sim" type="controller.py" output="screen">
       <remap from="estimate" to="ground_truth/odometry/NED"/>
-      <remap from="estimate" to="estimate"/>
+      <!-- <remap from="estimate" to="estimate"/> -->
     </node>
 
     <!-- Waypoint Manager -->
     <node name="waypoint_manager" pkg="ibvs_sim" type="ibvs_state_machine.py" output="screen">
       <param name ="mode" value="roscopter" />
+
+      <remap from="estimate" to="ground_truth/odometry/NED"/>
+      <!-- <remap from="estimate" to="estimate"/> -->
+
+      <param name="wp_threshold" value="0.5" />
     </node>
 
     <!-- plot states -->
@@ -88,33 +93,25 @@
   <!-- Load IBVS parameters -->
   <rosparam command="load" file="$(find ibvs_sim)/params/ibvs.yaml"/>
 
-  <!-- Level-frame mappers -->
-  <!-- outer marker -->
-  <node name="level_frame_mapper_outer" pkg="ibvs_sim" type="level_frame_mapper.py" output="screen">
-    <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/>
-    <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
-  </node>
-  <!-- inner marker -->
-  <node name="level_frame_mapper_inner" pkg="ibvs_sim" type="level_frame_mapper.py" output="screen">
-    <remap from="/quadcopter/estimate" to="/quadcopter/ground_truth/odometry/NED"/>
-    <remap from="/aruco/marker_corners" to="/aruco/marker_corners_inner"/>
-    <remap from="/ibvs/uv_bar_lf" to="/ibvs/uv_bar_lf_inner"/>
+  <node name="p_des_mapper" pkg="ibvs_sim" type="p_des_mapper.py" output="screen">
   </node>
 
   <!-- IBVS -->
-  <node name="ibvs" pkg="ibvs_sim" type="ibvs.py" output="screen">
+  <node name="ibvs_outer" pkg="ibvs_sim" type="ibvs.py" output="screen">
+    <remap from="/ibvs/pdes" to="/ibvs/pdes_outer"/>
+    <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
     <remap from="/aruco/distance" to="/aruco/distance_outer"/>
   </node>
 
-
   <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs.py" output="screen">
-    <remap from="/ibvs/uv_bar_lf" to="/ibvs/uv_bar_lf_inner"/>
+    <remap from="/ibvs/pdes" to="/ibvs/pdes_inner"/>
+    <remap from="/aruco/marker_corners" to="/aruco/marker_corners_inner"/>
     <remap from="/aruco/distance" to="/aruco/distance_inner"/>
     <remap from="/ibvs/vel_cmd" to="/ibvs_inner/vel_cmd"/>
   </node>
 
   <!-- Level-frame visualizer -->
-  <!-- <node pkg="ibvs_sim" type="level_frame_visualizer.py" name="level_frame_visualizer" output="screen" /> -->
+  <node pkg="ibvs_sim" type="level_frame_visualizer.py" name="level_frame_visualizer" output="screen" />
 
 
   <!-- ..... -->
@@ -131,7 +128,6 @@
     <param name="id_outer" value="148" />
     <param name="id_inner" value="65" />
 
-
     <param name="debug_save_input_frames" value="false" />
     <param name="debug_save_output_frames" value="false" />
     <param name="debug_image_path" value="/tmp/arucoimages" />
@@ -142,7 +138,7 @@
 
   <!-- Wind Publisher -->
   <node name="wind_publisher" pkg="ibvs_sim" type="wind.py">
-    <param name="wind_N" value="0.0" />
+    <param name="wind_N" value="-15.0" />
     <param name="wind_E" value="0.0" />
   </node>
 

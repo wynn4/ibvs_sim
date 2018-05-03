@@ -82,7 +82,7 @@ class ImageBasedVisualServoing(object):
             self.W = pixel_size * np.diag([0.1, 0.1, 10., 1.])
 
             # lambda from Corke eq. 15.11 (turning param)
-            self.lam = np.array([1.0, 1.0, 1.0, 1.0], dtype=np.float32).reshape(4,1)  # 4x1
+            self.lam = np.array([0.5, 0.5, 0.7, 1.0], dtype=np.float32).reshape(4,1)  # 4x1
 
 
         # desired pixel coords 
@@ -105,8 +105,8 @@ class ImageBasedVisualServoing(object):
 
         # initialize subscribers
         self.uv_bar_des_sub = rospy.Subscriber('/ibvs/pdes', FloatList, self.level_frame_desired_corners_callback)
-        self.uv_bar_sub = rospy.Subscriber('/aruco/marker_corners_outer', FloatList, self.level_frame_corners_callback)
-        self.aruco_sub = rospy.Subscriber('/aruco/distance_outer', Float32, self.aruco_distance_callback)
+        self.uv_bar_sub = rospy.Subscriber('/aruco/marker_corners', FloatList, self.level_frame_corners_callback)
+        self.aruco_sub = rospy.Subscriber('/aruco/distance', Float32, self.aruco_distance_callback)
         self.state_sub = rospy.Subscriber('/quadcopter/estimate', Odometry, self.altitude_callback)
         self.camera_info_sub = rospy.Subscriber('/quadcopter/camera/camera_info', CameraInfo, self.camera_info_callback)
 
