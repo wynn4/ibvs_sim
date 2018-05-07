@@ -57,7 +57,7 @@ P.tau = 0.15;
 
 % target parameters
 P.target_velocity = 5;  % (m/s)
-P.target_size = 1;          % size of target 
+P.target_size = 0.5;          % size of target 
 
 % adaptive parameter
 P.gamma_theta = 3000;
@@ -79,8 +79,9 @@ P.k_el     = 10; % proportional control gain for gimbal elevation
 % camera parameters
 P.cam_fps = 30;  % frames per second 
 P.cam_pix = 800;                      % size of (square) pixel array
-P.cam_fov   = 65*(pi/180);            % field of view of camera
-P.f = (P.cam_pix/2)/tan(P.cam_fov/2); % focal range in pixel
+P.fov_w   = 70*(pi/180);              % field of view of camera
+P.fov_h   = 40*(pi/180);
+P.f = (P.cam_pix/2)/tan(P.fov_w/2); % focal range in pixel
 P.pixelnoise = 0;                     % (pixels) - variance of the pixel noise
 P.pixel_to_meter = 0.000003226;       % 1 pixel = 0.000003226 m = 0.003226 mm
 

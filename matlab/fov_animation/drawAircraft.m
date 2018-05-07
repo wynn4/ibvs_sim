@@ -45,15 +45,18 @@ persistent dA  % dA => struct that will help us distinguish data for each distin
     persistent commanded_position_handle;
     persistent target_handle;    % handle for target
     persistent fov_handle;       % handle for camera field-of-view
+    persistent accel_region;
+    persistent line_handle
+    
     view_range = 5;
     close_enough_tolerance = 0.9;
     
     % first time function is called, initialize plot and persistent vars
     if t==0,
         figure(1), clf
-        axis square
         axis equal
-        axis([-20,20,-20,20,0,15]);
+        axis([-10,10,-10,10,0,15]);
+        % axis([-7, 7, -7, 7, 0, 15]);
         
         hold on;
         for i = 1:P.num_agents
@@ -62,7 +65,12 @@ persistent dA  % dA => struct that will help us distinguish data for each distin
                                                    [],'normal');
             commanded_position_handle(i) = drawCommandedPosition(dA(i).x_c,dA(i).y_c,dA(i).z_c,dA(i).yaw_c,...
                                                    []);
-            fov_handle(i) = drawFov(dA(i).pn, dA(i).pe, dA(i).pd, dA(i).phi, dA(i).theta, dA(i).psi,dA(i).az,dA(i).el,P.cam_fov,[],'normal');
+            fov_handle(i) = drawFov(dA(i).pn, dA(i).pe, dA(i).pd, dA(i).phi, dA(i).theta, dA(i).psi,dA(i).az,dA(i).el,P.fov_w, P.fov_h, [],'normal');
+            accel_region(i) = drawAccelRegion(dA(i).pn, dA(i).pe, dA(i).pd, dA(i).psi, P.fov_w, P.fov_h, target, [], 'normal');
+            vec_targ2vehicle = [dA(i).pn; dA(i).pe; dA(i).pd] - target;
+            vec_targ2vehicle = vec_targ2vehicle / norm(vec_targ2vehicle);
+            line_handle(i) = drawAccelLine(dA(i).pn, dA(i).pe, dA(i).pd, vec_targ2vehicle, []);
+            
         end
         target_handle = drawTarget(target, P.target_size, [], 'normal');
         title('Spacecraft')
@@ -70,7 +78,7 @@ persistent dA  % dA => struct that will help us distinguish data for each distin
         ylabel('North')
         zlabel('-Down')
         grid on;
-        view(32,47)  % set the view angle for figure
+        view(25,15)  % set the view angle for figure
         for i = 1:P.num_agents,
             dA(i).center = [dA(i).pe;dA(i).pn;dA(i).pd];
         end
@@ -93,6 +101,11 @@ persistent dA  % dA => struct that will help us distinguish data for each distin
             hold on
             drawFov(dA(i).pn, dA(i).pe, dA(i).pd, dA(i).phi, dA(i).theta, dA(i).psi,dA(i).az,dA(i).el,P.cam_fov,fov_handle(i));
             hold on
+            
+            drawAccelRegion(dA(i).pn, dA(i).pe, dA(i).pd, dA(i).psi, P.fov_w, P.fov_h, target, accel_region(i));
+            vec_targ2vehicle = [dA(i).pn; dA(i).pe; dA(i).pd] - target;
+            vec_targ2vehicle = vec_targ2vehicle / norm(vec_targ2vehicle);
+            drawAccelLine(dA(i).pn, dA(i).pe, dA(i).pd, vec_targ2vehicle, line_handle);
         end
         drawTarget(target, P.target_size, target_handle);
         hold on
@@ -106,20 +119,25 @@ end
 %=======================================================================
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function handle = drawFov(pn, pe, pd, phi, theta, psi,az,el,cam_fov,handle, mode)
+function handle = drawFov(pn, pe, pd, phi, theta, psi,az,el,fov_w,fov_h,handle, mode)
                            
 
     %-------vertices and faces for camera field-of-view --------------
     % vertices
-    % define unit vectors along fov in the camera gimbal frame
-    pts = [...
-        cos(cam_fov/2)*cos(cam_fov/2),  sin(cam_fov/2)*cos(cam_fov/2), -sin(cam_fov/2);...
-        cos(cam_fov/2)*cos(cam_fov/2), -sin(cam_fov/2)*cos(cam_fov/2), -sin(cam_fov/2);...
-        cos(cam_fov/2)*cos(cam_fov/2), -sin(cam_fov/2)*cos(cam_fov/2),  sin(cam_fov/2);...
-        cos(cam_fov/2)*cos(cam_fov/2),  sin(cam_fov/2)*cos(cam_fov/2),  sin(cam_fov/2);...
-        ]';
+    % define unit vectors along fov in the camera-body frame
+    % this is derived from the geometry of a pin-hole camera's fov
+    value = sqrt(1 + tan(fov_w/2)^2 + tan(fov_h/2)^2);
+    ix = tan(fov_w/2)/value;
+    iy = tan(fov_h/2)/value;
+    iz = 1/value;
+    pts = [ ix,  -iy, iz     % top-right
+            -ix, -iy, iz     % top-left
+            -ix, iy, iz     % bot-left
+            ix,  iy, iz ]'; % bot-right
+    
+    R_g_c = [0 1 0; 0 0 1; 1 0 0];
     % transform from gimbal coordinates to the vehicle coordinates
-    pts = Rot_v_to_b(phi,theta,psi)'*Rot_b_to_g(az,el)'*pts;
+    pts = Rot_v_to_b(phi,theta,psi)'*Rot_b_to_g(az,el)'* R_g_c' * pts;
 
     % first vertex is at center of MAV vehicle frame
     Vert = [pn, pe, pd];  
@@ -133,7 +151,7 @@ function handle = drawFov(pn, pe, pd, phi, theta, psi,az,el,cam_fov,handle, mode
             % intersects ground plane
             Vert = [...
                 Vert;...
-                [pn-pd*pts(1,i)/pts(3,i), pe-pd*pts(2,i)/pts(3,i), 0];...
+                [(pn-pd)*(pts(1,i)/pts(3,i)), (pe-pd)*(pts(2,i)/pts(3,i)), 0];...
                 ];
         else
             % this is when the field-of-view line is above the horizon.  In
@@ -174,7 +192,116 @@ function handle = drawFov(pn, pe, pd, phi, theta, psi,az,el,cam_fov,handle, mode
     set(handle,'Vertices',Vert,'Faces',Faces);
   end
   
-end 
+end
+
+function handle = drawAccelRegion(pn, pe, pd, psi, fov_w, fov_h, target, handle, mode)
+
+%-------vertices and faces for camera field-of-view --------------
+    % vertices
+    % unit vectors same as for fov
+    % this is derived from the geometry of a pin-hole camera's fov
+    value = sqrt(1 + tan(fov_w/2)^2 + tan(fov_h/2)^2);
+    ix = tan(fov_w/2)/value;
+    iy = tan(fov_h/2)/value;
+    iz = 1/value;
+    pts = [ ix,  -iy, iz     % top-right
+            -ix, -iy, iz     % top-left
+            -ix, iy, iz     % bot-left
+            ix,  iy, iz ]'; % bot-right
+    
+    % but we take the negative to project above the quad
+    pts = -pts;
+    
+    % get a unit vector in the inertial frame from the target to the
+    % vehicle
+    vec_target2vehicle = [pn, pe, pd]' - target;
+    
+    % normalize it
+    vec_target2vehicle = vec_target2vehicle / norm(vec_target2vehicle);
+    
+    % rotate into the v1 frame
+    R_v_v1 = [cos(psi), sin(psi), 0; -sin(psi), cos(psi), 0; 0, 0 , 1];
+    vec_v1 = R_v_v1 * vec_target2vehicle;
+    
+    
+    
+    
+    
+    %R_g_c = [0 1 0; 0 0 1; 1 0 0];
+    % transform from gimbal coordinates to the vehicle coordinates
+    %pts = Rot_v_to_b(0,0,psi)'*Rot_b_to_g(0,0)'* R_g_c' * pts;
+    
+    R_c_v1 = [0 -1 0; 1 0 0; 0 0 1];
+    pts = Rot_v_to_b(0,0,psi)'*R_c_v1 * pts;
+    
+    
+    
+    % first vertex is at center of MAV vehicle frame
+    Vert = [pn, pe, pd];  
+    % project field of view lines onto ground plane and make correction
+    % when the projection is above the horizon
+    for i=1:4,
+        
+        Vert = [...
+            Vert;...
+            [pn+5*pts(1,i), pe+5*pts(2,i),pd+5*pts(3,i)];...
+            ];
+        
+    end
+    
+    Faces = [...
+          1, 1, 2, 2;... % x-y face
+          1, 1, 3, 3;... % x-y face
+          1, 1, 4, 4;... % x-y face
+          1, 1, 5, 5;... % x-y face
+          2, 3, 4, 5;... % x-y face
+        ];
+
+    edgecolor      = [0, 0, 1]; % black
+    footprintcolor = [0,1,0];%[1,0,1];%[1,1,0];
+    colors = [edgecolor; edgecolor; edgecolor; edgecolor; footprintcolor];  
+
+  % transform vertices from NED to XYZ (for matlab rendering)
+  R = [...
+      0, 1, 0;...
+      1, 0, 0;...
+      0, 0, -1;...
+      ];
+  Vert = Vert*R;
+
+  if isempty(handle),
+    handle = patch('Vertices', Vert, 'Faces', Faces,...
+                 'FaceVertexCData',colors,...
+                 'FaceColor','flat',...
+                 'EraseMode', mode);
+  else
+    set(handle,'Vertices',Vert,'Faces',Faces);
+  end
+    
+    
+end
+
+function handle = drawAccelLine(pn, pe, pd, vec_targ2vehicle, handle)
+    start = [pn, pe, pd]';
+    termination = [pn, pe, pd]' + vec_targ2vehicle*6;
+    
+    R = [...
+         0, 1, 0;...
+         1, 0, 0;...
+         0, 0, -1;...
+        ];
+    
+    start = R * start;
+    termination = R * termination;
+  
+    
+    line = [start'; termination'];
+    if isempty(handle)
+        handle = plot3(line(:,1), line(:,2), line(:,3), '-r');
+    else
+        set(handle, 'XData', line(:,1), 'YData', line(:,2), 'ZData', line(:,3));
+    end
+end
 
 function handle = drawSpacecraftBody(V,F,patchcolors,...
                                      pn,pe,pd,phi,theta,psi,...

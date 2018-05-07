@@ -41,14 +41,13 @@ function drawPlanarQuad(u)
         ylabel('h Position')
         
     % at every other time step, redraw planar VTOL
-    else 
+    else
         drawTarget_(Z_target, target_handle);
         drawLine_(theta, Z, h, L, line_handle);
         drawFOV_(theta, Z, h, FOV, fov_handle);
         draw_Target_LOS_(theta, Z, h, Z_target, los_handle)
         drawACCEL_region_(theta, Z, h, FOV, Z_target, accel_handle)
         drawBody_(theta, Z, h, L, body_handle);
-        
         
     end
 end
@@ -95,6 +94,10 @@ function handle = drawBody_(theta, Z, h, L, handle)
          0.4*L, 0.1*L;
          0.4*L, 0.05*L;
          0, 0.05*L;
+         0, 0.5*L;
+         0.05*L, 0.5*L;
+         0, 0.65*L;
+         -0.05*L, 0.5*L;
          0, 0.5*L;
          0, 0.05*L;
          -0.4*L, 0.05*L;
