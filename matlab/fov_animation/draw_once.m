@@ -1,11 +1,11 @@
-pn = 0;
-pe = 0;
+pn = -5;
+pe = -5;
 pd = -10;
 u = 0;
 v = 0;
 w = 0;
-phi = deg2rad(10);
-theta = deg2rad(15);
+phi = deg2rad(0);
+theta = deg2rad(0);
 psi = deg2rad(0);
 p = 0;
 q = 0;
