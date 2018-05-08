@@ -49,7 +49,7 @@ for i = 1:P.num_agents,
 end
 
 % compute gains
-compute_gains;
+% compute_gains;
 
 % time constant for dirty derivative filter
 P.tau = 0.15;
@@ -80,7 +80,7 @@ P.k_el     = 10; % proportional control gain for gimbal elevation
 P.cam_fps = 30;  % frames per second 
 P.cam_pix = 800;                      % size of (square) pixel array
 P.fov_w   = 70*(pi/180);              % field of view of camera
-P.fov_h   = 40*(pi/180);
+P.fov_h   = 60*(pi/180);
 P.f = (P.cam_pix/2)/tan(P.fov_w/2); % focal range in pixel
 P.pixelnoise = 0;                     % (pixels) - variance of the pixel noise
 P.pixel_to_meter = 0.000003226;       % 1 pixel = 0.000003226 m = 0.003226 mm

@@ -47,6 +47,7 @@ persistent dA  % dA => struct that will help us distinguish data for each distin
     persistent fov_handle;       % handle for camera field-of-view
     persistent accel_region;
     persistent line_handle
+    persistent k_axis_handle;
     
     view_range = 5;
     close_enough_tolerance = 0.9;
@@ -63,13 +64,14 @@ persistent dA  % dA => struct that will help us distinguish data for each distin
             spacecraft_handle(i) = drawSpacecraftBody(V,F,patchcolors,...
                                                    dA(i).pn,dA(i).pe,dA(i).pd,dA(i).phi,dA(i).theta,dA(i).psi,...
                                                    [],'normal');
-            commanded_position_handle(i) = drawCommandedPosition(dA(i).x_c,dA(i).y_c,dA(i).z_c,dA(i).yaw_c,...
-                                                   []);
+%             commanded_position_handle(i) = drawCommandedPosition(dA(i).x_c,dA(i).y_c,dA(i).z_c,dA(i).yaw_c,...
+%                                                    []);
             fov_handle(i) = drawFov(dA(i).pn, dA(i).pe, dA(i).pd, dA(i).phi, dA(i).theta, dA(i).psi,dA(i).az,dA(i).el,P.fov_w, P.fov_h, [],'normal');
             accel_region(i) = drawAccelRegion(dA(i).pn, dA(i).pe, dA(i).pd, dA(i).psi, P.fov_w, P.fov_h, target, [], 'normal');
             vec_targ2vehicle = [dA(i).pn; dA(i).pe; dA(i).pd] - target;
             vec_targ2vehicle = vec_targ2vehicle / norm(vec_targ2vehicle);
-            line_handle(i) = drawAccelLine(dA(i).pn, dA(i).pe, dA(i).pd, vec_targ2vehicle, []);
+            line_handle(i) = drawAccelLine(dA(i).pn, dA(i).pe, dA(i).pd, vec_targ2vehicle, target, []);
+            k_axis_handle(i) = draw_K_axis(dA(i).pn, dA(i).pe, dA(i).pd, dA(i).phi, dA(i).theta, dA(i).psi, []);
             
         end
         target_handle = drawTarget(target, P.target_size, [], 'normal');
@@ -96,8 +98,8 @@ persistent dA  % dA => struct that will help us distinguish data for each distin
                                dA(i).pn,dA(i).pe,dA(i).pd,dA(i).phi,dA(i).theta,dA(i).psi,...
                                spacecraft_handle(i));
             hold on
-            drawCommandedPosition(dA(i).x_c,dA(i).y_c,dA(i).z_c,dA(i).yaw_c,...
-                               commanded_position_handle(i));
+%             drawCommandedPosition(dA(i).x_c,dA(i).y_c,dA(i).z_c,dA(i).yaw_c,...
+%                                commanded_position_handle(i));
             hold on
             drawFov(dA(i).pn, dA(i).pe, dA(i).pd, dA(i).phi, dA(i).theta, dA(i).psi,dA(i).az,dA(i).el,P.cam_fov,fov_handle(i));
             hold on
@@ -105,7 +107,8 @@ persistent dA  % dA => struct that will help us distinguish data for each distin
             drawAccelRegion(dA(i).pn, dA(i).pe, dA(i).pd, dA(i).psi, P.fov_w, P.fov_h, target, accel_region(i));
             vec_targ2vehicle = [dA(i).pn; dA(i).pe; dA(i).pd] - target;
             vec_targ2vehicle = vec_targ2vehicle / norm(vec_targ2vehicle);
-            drawAccelLine(dA(i).pn, dA(i).pe, dA(i).pd, vec_targ2vehicle, line_handle);
+            drawAccelLine(dA(i).pn, dA(i).pe, dA(i).pd, vec_targ2vehicle, target, line_handle);
+            draw_K_axis(dA(i).pn, dA(i).pe, dA(i).pd, dA(i).phi, dA(i).theta, dA(i).psi, k_axis_handle);
         end
         drawTarget(target, P.target_size, target_handle);
         hold on
@@ -223,16 +226,36 @@ function handle = drawAccelRegion(pn, pe, pd, psi, fov_w, fov_h, target, handle,
     R_v_v1 = [cos(psi), sin(psi), 0; -sin(psi), cos(psi), 0; 0, 0 , 1];
     vec_v1 = R_v_v1 * vec_target2vehicle;
     
+%     % find the total angle between this line and the vehicle -k axis
+%     angle = acos(dot([0; 0; -1], vec_v1));
+%     
+%     % find axis that is normal to vec_v1
+%     %m_axis = [vec_v1(2), -vec_v1(1), 0]';
+%     m_axis = cross(vec_v1, [0, 0, -1]');
+%     
+%     % normalize it
+%     m_axis = m_axis / norm(m_axis);
+%     
+%     u = m_axis(1);
+%     v = m_axis(2);
+%     w = m_axis(3);
+%     
+%     % define rotation about m_axis by angle 
+%     R = [u^2 + (v^2 + w^2)*cos(angle), u*v*(1-cos(angle))-w*sin(angle), u*w*(1-cos(angle))+v*sin(angle);
+%          u*v*(1-cos(angle))+w*sin(angle), v^2 + (u^2 + w^2)*cos(angle), v*w*(1-cos(angle))-u*sin(angle);
+%          u*w*(1-cos(angle))-v*sin(angle), v*w*(1-cos(angle))+u*sin(angle), w^2 + (u^2 + v^2)*cos(angle)];
     
-    
-    
-    
+    % find the virtual roll and pitch angles that would point the camera
+    % direclty at the target
+    phi = asin(vec_v1(2));
+    theta = atan2(-vec_v1(1), -vec_v1(3));
+     
     %R_g_c = [0 1 0; 0 0 1; 1 0 0];
     % transform from gimbal coordinates to the vehicle coordinates
     %pts = Rot_v_to_b(0,0,psi)'*Rot_b_to_g(0,0)'* R_g_c' * pts;
     
     R_c_v1 = [0 -1 0; 1 0 0; 0 0 1];
-    pts = Rot_v_to_b(0,0,psi)'*R_c_v1 * pts;
+    pts = Rot_v_to_b(phi,theta,psi)'*R_c_v1 * pts;
     
     
     
@@ -281,9 +304,11 @@ function handle = drawAccelRegion(pn, pe, pd, psi, fov_w, fov_h, target, handle,
     
 end
 
-function handle = drawAccelLine(pn, pe, pd, vec_targ2vehicle, handle)
-    start = [pn, pe, pd]';
-    termination = [pn, pe, pd]' + vec_targ2vehicle*6;
+function handle = drawAccelLine(pn, pe, pd, vec_targ2vehicle, target_pos, handle)
+    % start = [pn, pe, pd]';
+    % termination = [pn, pe, pd]' + vec_targ2vehicle*6;
+    start = target_pos;
+    termination = start + vec_targ2vehicle*20;
     
     R = [...
          0, 1, 0;...
@@ -297,10 +322,34 @@ function handle = drawAccelLine(pn, pe, pd, vec_targ2vehicle, handle)
     
     line = [start'; termination'];
     if isempty(handle)
-        handle = plot3(line(:,1), line(:,2), line(:,3), '-r');
+        handle = plot3(line(:,1), line(:,2), line(:,3), '--r');
     else
         set(handle, 'XData', line(:,1), 'YData', line(:,2), 'ZData', line(:,3));
     end
+end
+
+function handle = draw_K_axis(pn, pe, pd, phi, theta, psi, handle)
+
+  start = [pn; pe; pd];
+  termination = Rot_v_to_b(phi, theta, psi)'*[0 0 -1]';
+  termination = start + termination * 20;
+  
+  R = [...
+         0, 1, 0;...
+         1, 0, 0;...
+         0, 0, -1;...
+        ];
+    
+  start = R * start;
+  termination = R * termination;
+  
+  line = [start'; termination'];
+  if isempty(handle)
+      handle = plot3(line(:,1), line(:,2), line(:,3), '-k');
+  else
+      set(handle, 'XData', line(:,1), 'YData', line(:,2), 'ZData', line(:,3));
+  end
+
 end
 
 function handle = drawSpacecraftBody(V,F,patchcolors,...
