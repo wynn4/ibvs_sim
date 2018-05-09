@@ -85,9 +85,9 @@ class move:
         self.current_time = rospy.get_time()
         time = self.current_time - self.start_time
 
-        self.cmd.position.z = 0.5 * math.sin(0.75 * time)
-        self.cmd.orientation.x = self.max_angle * math.sin(1.75 * time)
-        self.cmd.orientation.y = self.max_angle * math.sin(1.2 * time)
+        self.cmd.position.z = 0.5 * math.sin(0.2 * time)
+        self.cmd.orientation.x = self.max_angle * math.sin(0.5 * time)
+        self.cmd.orientation.y = self.max_angle * math.sin(0.6 * time)
         
         self.boat_pub.publish(self.cmd)
 

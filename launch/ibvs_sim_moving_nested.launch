@@ -164,6 +164,11 @@
     <param name="wind_E" value="0.0" />
   </node>
 
+  <!-- Relative Vector Pub -->
+  <node name="relative_vec_pub" pkg="ibvs_sim" type="rel_pos_pub.py">
+    <remap from="/target_position" to="/boat/odometry/NED" />
+  </node>
+
 
   <!-- ...... -->
   <!-- ROSBAG -->

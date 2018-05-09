@@ -11,6 +11,7 @@ from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Point
+from geometry_msgs.msg import Quaternion
 from rosflight_msgs.msg import Command
 from mavros_msgs.msg import PositionTarget
 from mavros_msgs.srv import SetMode
@@ -25,6 +26,12 @@ from collections import deque
 # - Don't switch into IBVS until you've reached the rendezvous point -- Done April 6, 2018
 # - Handle switching to the inner marker corners better
 #    - The count method isn't great
+# - Touchdown timing
+#    -don't land when the aruco is rolled or pitched a lot -- Done May 9, 2018
+# - Resetting of state machine when ArUco is lost
+# - Bread-crumb trail
+# - Open-loop search for ArUco (maybe)
+
 
 
 class StateMachine():
@@ -88,6 +95,14 @@ class StateMachine():
         # Average roll and pitch values in the wind
         self.roll_avg = 0.0
         self.pitch_avg = 0.0
+
+        # Rotation matrix to hold ArUco attitude data
+        self.R_aruco = np.eye(3, dtype=np.float32)
+
+        self.max_boat_angle = np.radians(15.0)
+
+        # Flag for wheter or not is is a good time to land
+        self.safe_to_land = False
 
         # Initialize state variables
         self.pn = 0.0
@@ -160,6 +175,7 @@ class StateMachine():
         self.ibvs_sub = rospy.Subscriber('/ibvs/vel_cmd', Twist, self.ibvs_velocity_cmd_callback, queue_size=1)
         self.ibvs_inner_sub = rospy.Subscriber('/ibvs_inner/vel_cmd', Twist, self.ibvs_velocity_cmd_inner_callback, queue_size=1)
         self.aruco_sub = rospy.Subscriber('/aruco/distance_inner', Float32, self.aruco_inner_distance_callback)
+        self.aruco_att_sub = rospy.Subscriber('/aruco/orientation_inner', Quaternion, self.aruco_att_callback)
         self.aruco_heading_sub = rospy.Subscriber('/aruco/heading_outer', Float32, self.aruco_relative_heading_callback)
         self.state_sub = rospy.Subscriber('estimate', Odometry, self.state_callback)
         self.command_pub_roscopter = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
@@ -200,16 +216,17 @@ class StateMachine():
             # print "reset"
 
         # if the ArUco has been in sight for a while
-        # if False:
         if (self.ibvs_count > self.count_outer_req or self.ibvs_count_inner > self.count_inner_req) and self.status_flag == 'IBVS':
             
             self.ibvs_active_msg.data = True
 
+            # if False:
             if self.ibvs_count_inner > self.count_inner_req:
 
+                # print 'ArUco angle: %f' % np.degrees(self.aruco_angle)
                 # print(self.distance)
                 # in this case we enter an open-loop drop onto the marker
-                if self.distance < 0.5 and self.distance > 0.05 and self.land_mode_sent == False:
+                if self.distance < 0.5 and self.distance > 0.05 and self.land_mode_sent == False and self.safe_to_land:
 
                     self.execute_landing()
                         
@@ -266,8 +283,8 @@ class StateMachine():
 
             if self.heading_correction_completed == False:
                 des_heading = self.psi + self.relative_heading
-                while des_heading > np.radians(180.0):  des_heading = des_heading - radians(360.0)
-                while des_heading < np.radians(-180.0):  des_heading = des_heading + radians(360.0)
+                while des_heading > np.radians(180.0):  des_heading = des_heading - np.radians(360.0)
+                while des_heading < np.radians(-180.0):  des_heading = des_heading + np.radians(360.0)
                 self.heading_command = des_heading
 
                 # Update average roll and pitch angles after the yaw manuver (rotate about z-axis by relative heading)
@@ -559,6 +576,24 @@ class StateMachine():
         self.relative_heading = msg.data
         # print(self.distance)
 
+    def aruco_att_callback(self, msg):
+
+        self.R_aruco = self.get_R_from_quaternion(msg.w, msg.x, msg.y, msg.z)
+
+        vec = np.dot(self.R_aruco, np.array([[0], [0], [-1]]))
+
+        # Find the angle between vec and the inertial k-axis.
+        angle = np.arccos(np.dot(vec.T, np.array([[0], [0], [-1]])))
+
+        # The ArUco frame is out of alignment with the camera frame by 180 degrees
+        angle = np.pi - angle
+
+        if angle <= self.max_boat_angle:
+            self.safe_to_land = True
+        else:
+            self.safe_to_land = False
+
+
 
     def target_callback(self, msg):
 
@@ -622,6 +657,23 @@ class StateMachine():
 
         enu_vec = np.dot(self.R_ned_enu, ned_vec)
         return enu_vec
+
+
+    def get_R_from_quaternion(self, w, x, y, z):
+        
+        wx = w*x
+        wy = w*y
+        wz = w*z
+        xx = x*x
+        xy = x*y
+        xz = x*z
+        yy = y*y
+        yz = y*z
+        zz = z*z
+
+        return np.array([[1. - 2.*yy - 2.*zz, 2.*xy + 2.*wz, 2.*xz - 2.*wy],
+                         [2.*xy - 2.*wz, 1. - 2.*xx - 2.*zz, 2.*yz + 2.*wx],
+                         [2.*xz + 2.*wy, 2.*yz - 2.*wx, 1. - 2.*xx - 2.*yy]])
 
 
 def main():
