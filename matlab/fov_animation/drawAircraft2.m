@@ -57,7 +57,7 @@ if t==0,
     ylabel('North')
     zlabel('-Down')
     grid on;
-    view(25,15)  % set the view angle for figure
+    view(25,35)  % set the view angle for figure
     hold on
     
     % at every other time step, redraw base and rod
