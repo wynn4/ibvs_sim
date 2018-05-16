@@ -122,19 +122,19 @@ class LevelFrameVisualizer(object):
             # v4_des = self.p_des[7][0]
 
             # current pixel locations
-            p1 = np.array([[msg.data[0]],[msg.data[1]]])
+            p1 = np.array([[msg.data[8]],[msg.data[9]]])
             # u1= msg.data[0]   # u1
             # v1= msg.data[1]   # v1
 
-            p2 = np.array([[msg.data[2]],[msg.data[3]]])
+            p2 = np.array([[msg.data[10]],[msg.data[11]]])
             # u2= msg.data[2]   # u2
             # v2= msg.data[3]   # v2
 
-            p3 = np.array([[msg.data[4]],[msg.data[5]]])
+            p3 = np.array([[msg.data[12]],[msg.data[13]]])
             # u3= msg.data[4]   # u3
             # v3= msg.data[5]   # v3
 
-            p4 = np.array([[msg.data[6]],[msg.data[7]]])
+            p4 = np.array([[msg.data[14]],[msg.data[15]]])
             # u4= msg.data[6]   # u4
             # v4= msg.data[7]   # v4
 
