@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   rosflight_utils
   dynamic_reconfigure
   geometry_msgs
+  nav_msgs
   sensor_msgs
 )
 
@@ -30,6 +31,8 @@ find_package(gazebo REQUIRED)
 link_directories(${GAZEBO_LIBRARY_DIRS})
 include_directories(${GAZEBO_INCLUDE_DIRS})
 include_directories(${OpenCV_INCLUDE_DIRS})
+
+find_package(Eigen3 REQUIRED)
 
 
 
@@ -119,7 +122,7 @@ generate_dynamic_reconfigure_options(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 
 catkin_package(
- INCLUDE_DIRS include ${Eigen_INCLUDE_DIRS}
+ INCLUDE_DIRS include plugins/include ${Eigen_INCLUDE_DIRS}
  CATKIN_DEPENDS roscpp rospy std_msgs rosflight_msgs rosflight_utils
  DEPENDS eigen
 )
@@ -128,13 +131,31 @@ catkin_package(
 ## Build ##
 ###########
 
+
+
+####################################
+## Start Build Stuff or MavrosNED ##
+####################################
+
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-  plugins/include/
-)
+include_directories(include plugins/include ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS})
+
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+add_executable(mavros_ned src/mavros_ned_node.cpp src/mavros_ned/MavrosNED.cpp)
+
+## Specify libraries to link a library or executable target against
+add_dependencies(aruco_localization ${catkin_EXPORTED_TARGETS})
+target_link_libraries(mavros_ned ${catkin_LIBRARIES})
+
+####################################
+## End Build Stuff or MavrosNED ##
+####################################
+
+
+
 
 include_directories(${Eigen_INCLUDE_DIRS})
 

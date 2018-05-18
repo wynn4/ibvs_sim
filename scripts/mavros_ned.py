@@ -61,7 +61,7 @@ class MavrosNED(object):
         self.estimate_pub = rospy.Publisher("/mavros_ned/estimate", Odometry, queue_size=1)
 
         # Initialize timers.
-        self.update_rate = 29.0
+        self.update_rate = 60.0
         self.update_timer = rospy.Timer(rospy.Duration(1.0/self.update_rate), self.send_ned_estimate)
 
 
