@@ -64,11 +64,18 @@
         <param name="id_inner" value="65" />
 
         <param name="draw_data" value="$(arg draw_aruco_data)" />
+
+        <param name="shrink_image" value="true" />
+
+        <param name="camera_offset_x" value="0.0" />
+        <param name="camera_offset_y" value="0.0" />
+        <param name="camera_offset_z" value="0.08" />
+
         <param name="debug_save_input_frames" value="false" />
         <param name="debug_save_output_frames" value="false" />
         <param name="debug_image_path" value="/tmp/arucoimages" />
 
-        <remap from="input_image" to="/quadcopter/camera/rgb" />
+        <remap from="input_image" to="/image_raw" />
         <remap from="output_image" to="aruco/image" />
     </node>
 
@@ -86,7 +93,7 @@
 
 
     <!-- IBVS Data Saver -->
-    <node name="data_saver" pkg="ibvs_sim" type="save_mat_data.py" >
+    <node name="data_saver" pkg="ibvs_sim" type="save_mat_data.py" output="screen">
         <remap from="/quadcopter/estimate" to="/mavros_ned/estimate" />
     </node>
 
