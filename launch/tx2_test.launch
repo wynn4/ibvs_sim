@@ -77,6 +77,7 @@
 
         <remap from="input_image" to="/image_raw" />
         <remap from="output_image" to="aruco/image" />
+        <remap from="/quadcopter/ground_truth/odometry/NED" to="/mavros_ned/estimate" />
     </node>
 
     <!-- Point Grey Camera -->
