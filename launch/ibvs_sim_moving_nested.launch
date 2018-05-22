@@ -19,7 +19,8 @@
 
   <!-- ArUco args -->
   <arg name="show_camera" default="false" />
-  <arg name="show_aruco_detections" default="false" />
+  <arg name="show_aruco_frame" default="true" />
+  <arg name="draw_aruco_data" default="true" />
 
   <!-- Start Simulator -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -142,7 +143,7 @@
 
   <!-- ArUco Localization -->
   <node pkg="aruco_localization" type="aruco_localization" name="aruco" output="screen">
-    <param name="show_output_video" value="$(arg show_aruco_detections)" />
+    <param name="show_output_video" value="$(arg show_aruco_frame)" />
     <param name="markermap_config" value="$(find ibvs_sim)/params/nested148_65.yaml" />
     <!-- <param name="marker_size" value="0.1760" /> -->
     <param name="marker_size" value="0.7071" />
@@ -150,6 +151,7 @@
     <param name="id_outer" value="148" />
     <param name="id_inner" value="65" />
 
+    <param name="draw_data" value="$(arg draw_aruco_data)" />
     <param name="debug_save_input_frames" value="false" />
     <param name="debug_save_output_frames" value="false" />
     <param name="debug_image_path" value="/tmp/arucoimages" />
