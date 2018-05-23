@@ -98,7 +98,7 @@
   </node>
 
   <!-- IBVS -->
-  <node name="ibvs_outer" pkg="ibvs_sim" type="ibvs.py" output="screen">
+  <node name="ibvs_outer" pkg="ibvs_sim" type="ibvs_adaptive.py" output="screen">
     <remap from="/ibvs/pdes" to="/ibvs/pdes_outer"/>
     <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
     <remap from="/aruco/distance" to="/aruco/distance_outer"/>
@@ -135,7 +135,7 @@
 
   <!-- Wind Publisher -->
   <node name="wind_publisher" pkg="ibvs_sim" type="wind.py" output="screen">
-    <param name="wind_N" value="-5.0" />
+    <param name="wind_N" value="-0.0" />
     <param name="wind_E" value="0.0" />
   </node>
 

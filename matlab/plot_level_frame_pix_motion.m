@@ -2,12 +2,13 @@ clc
 clear
 close all
 
-load('/home/jesse/ibvs_data_outer.mat')
+load('ibvs_data_outer.mat')
 im_width = 962;
 im_height = 720;
 
 % time
 t = arr(:,1);
+t = t - t(1);
 
 % true pixel locations
 p1_x = arr(:,6) - im_width/2;
@@ -35,24 +36,28 @@ roll = roll(start_index:end_index);
 pitch = pitch(start_index:end_index);
 
 figure(1), clf
-subplot(3,1,1)
-plot(t,p1_x, t, p1_level_x)
-title('Feature Pixel u Location vs time')
-ylabel('u (pixels)')
-legend('true pixel', 'level-frame pixel')
+subplot(2,1,1)
+plot(t,p1_x, t, p1_level_x,'-.')
+% plot(t,p1_x, t, p1_level_x,'-.', 'LineWidth', 2)
+axis([0, 30, -400, 400])
+title('Feature $p_u$ Location vs Time', 'Interpreter', 'latex')
+ylabel('$u$ (pixels)', 'Interpreter', 'latex')
+legend({'$p_u$', '$p_u^*$'}, 'Interpreter', 'latex')
 
-subplot(3,1,2)
-plot(t,p1_y, t, p1_level_y)
-title('Feature Pixel v Location vs time')
-ylabel('v (pixels)')
-legend('true pixel', 'level-frame pixel')
+subplot(2,1,2)
+plot(t,p1_y, t, p1_level_y,'-.')
+axis([0, 30, -400, 100])
+title('Feature $p_v$ Location vs Time', 'Interpreter', 'latex')
+ylabel('$v$ (pixels)', 'Interpreter', 'latex')
+legend({'$p_v$', '$p_v^*$'}, 'Interpreter', 'latex')
+xlabel('Time (s)', 'Interpreter', 'latex')
 
-subplot(3,1,3)
-plot(t,roll, t,pitch)
-title('Roll and Pitch Angles vs Time')
-xlabel('Time (s)')
-ylabel('Attitude Angle (rad)')
-legend('roll', 'pitch')
+% subplot(3,1,3)
+% plot(t,roll, t,pitch)
+% title('Roll and Pitch Angles vs Time')
+% xlabel('Time (s)')
+% ylabel('Attitude Angle (rad)')
+% legend('roll', 'pitch')
 
 % title('Feature Pixel u Location vs time')
 % title('Feature Pixel v Location vs time')

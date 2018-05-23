@@ -120,13 +120,13 @@
   </node>
 
   <!-- IBVS -->
-  <node name="ibvs_outer" pkg="ibvs_sim" type="ibvs.py" output="screen">
+  <node name="ibvs_outer" pkg="ibvs_sim" type="ibvs_adaptive.py" output="screen">
     <remap from="/ibvs/pdes" to="/ibvs/pdes_outer"/>
     <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
     <remap from="/aruco/distance" to="/aruco/distance_outer"/>
   </node>
 
-  <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs.py" output="screen">
+  <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs_adaptive.py" output="screen">
     <remap from="/ibvs/pdes" to="/ibvs/pdes_inner"/>
     <remap from="/aruco/marker_corners" to="/aruco/marker_corners_inner"/>
     <remap from="/aruco/distance" to="/aruco/distance_inner"/>
