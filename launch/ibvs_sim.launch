@@ -99,9 +99,10 @@
 
   <!-- IBVS -->
   <node name="ibvs_outer" pkg="ibvs_sim" type="ibvs_adaptive.py" output="screen">
-    <remap from="/ibvs/pdes" to="/ibvs/pdes_outer"/>
-    <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
-    <remap from="/aruco/distance" to="/aruco/distance_outer"/>
+    <remap from="/ibvs/pdes" to="/ibvs/pdes_outer" />
+    <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer" />
+    <remap from="/aruco/distance" to="/aruco/distance_outer" />
+    <remap from="/ibvs/ibvs_error" to="/ibvs/ibvs_error_outer" />
   </node>
 
   <!-- Level-frame visualizer -->

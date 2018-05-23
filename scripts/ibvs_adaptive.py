@@ -100,6 +100,10 @@ class ImageBasedVisualServoing(object):
         # initialize velocity command
         self.vel_cmd_msg = Twist()
 
+        # Initialize error msg
+        self.ibvs_ave_error_msg = Float32()
+        self.error_ave = 1000.0
+
         # initialize subscribers
         self.uv_bar_des_sub = rospy.Subscriber('/ibvs/pdes', FloatList, self.level_frame_desired_corners_callback)
         self.uv_bar_sub = rospy.Subscriber('/aruco/marker_corners', FloatList, self.level_frame_corners_callback)
@@ -109,6 +113,7 @@ class ImageBasedVisualServoing(object):
 
         # initialize publishers
         self.vel_cmd_pub = rospy.Publisher('/ibvs/vel_cmd', Twist, queue_size=1)
+        self.ibvs_error_pub = rospy.Publisher('/ibvs/ibvs_error', Float32, queue_size=1)
 
 
     def level_frame_corners_callback(self, msg):
@@ -132,7 +137,7 @@ class ImageBasedVisualServoing(object):
 
         # Compute distance between the centroid, and the centroid of p_des and get appropriate IBVS flag
         self.mode_flag = self.set_ibvs_mode(u_centroid, v_centroid)
-        print self.mode_flag
+        # print self.mode_flag
 
         # t = time.time()
 
@@ -177,11 +182,13 @@ class ImageBasedVisualServoing(object):
         # formulate the desired camera velocity vector rdot_des
         if self.mode_flag == 'IBVS_2DOF':
             e = self.p_des - p
+            self.error_ave = np.linalg.norm(e) / 2.0
             # v = lambda * pinv(Jp) * e
             rdot_des = self.lam2DOF * np.linalg.pinv(Jp).dot(e)  # 2x1
             # NOTE: In the future, I may want to try Corke's 2nd Order Jacobian (eq. 15.12)
         else:
             e = self.p_des - p
+            self.error_ave = np.linalg.norm(e) / 2.0
             # v = lambda * pinv(Jp) * e
             rdot_des = self.lam4DOF * np.linalg.pinv(Jp).dot(e)  # 4x1
 
@@ -233,6 +240,9 @@ class ImageBasedVisualServoing(object):
 
         # publish
         self.vel_cmd_pub.publish(self.vel_cmd_msg)
+
+        self.ibvs_ave_error_msg.data = self.error_ave
+        self.ibvs_error_pub.publish(self.ibvs_ave_error_msg)
 
 
     def level_frame_desired_corners_callback(self, msg):

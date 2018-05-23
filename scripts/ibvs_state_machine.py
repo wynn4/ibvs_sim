@@ -48,6 +48,17 @@ class StateMachine():
         self.status_flag_msg = String()
         self.status_flag_msg.data = self.status_flag
 
+        # Initialize current target flag
+        self.current_target = 'aruco_outer'
+
+        # Initialize visibility flags
+        self.outer_target_is_visible = False
+        self.inner_target_is_visible = False
+        self.current_target_is_visible = False
+        self.other_target_is_visible = False
+
+
+
         # Velocity saturation values
         self.u_max = rospy.get_param('~u_max', 0.5)
         self.v_max = rospy.get_param('~v_max', 0.5)
@@ -63,7 +74,11 @@ class StateMachine():
         self.rendezvous_height = rospy.get_param('~rendezvous_height', 10.0)
         self.wp_threshold = rospy.get_param('~wp_threshold', 1.0)
 
+        self.landing_distance_threshold = rospy.get_param('~landing_distance_threshold', 0.5)
+        self.p_des_error_outer_threshold = rospy.get_param('~p_des_error_outer_threshold', 50.0)
+
         self.wp_error = 1.0e3
+        self.p_des_error_outer = 1.0e3
 
         # initialize target location
         self.target_N = 0.0
@@ -120,7 +135,7 @@ class StateMachine():
         self.ibvs_z = 0.0
 
         self.ibvs_count = 0
-        self.ibvs_time = rospy.get_time() - 10.0
+        self.ibvs_time_outer = rospy.get_time() - 100.0  # In the past
 
         # inner
         self.ibvs_x_inner = 0.0
@@ -129,9 +144,8 @@ class StateMachine():
         self.ibvs_z_inner = 0.0
 
         self.ibvs_count_inner = 0
-        self.ibvs_time_inner = rospy.get_time() - 10.0
+        self.ibvs_time_inner = rospy.get_time() - 100.0  # In the past
 
-        self.counters_frozen = False
         self.distance = 10.0
 
         self.land_mode_sent = False
@@ -178,6 +192,9 @@ class StateMachine():
         self.aruco_att_sub = rospy.Subscriber('/aruco/orientation_inner', Quaternion, self.aruco_att_callback)
         self.aruco_heading_sub = rospy.Subscriber('/aruco/heading_outer', Float32, self.aruco_relative_heading_callback)
         self.state_sub = rospy.Subscriber('estimate', Odometry, self.state_callback)
+        self.ibvs_ave_error_sub = rospy.Subscriber('/ibvs/ibvs_error_outer', Float32, self.ibvs_ave_error_callback)
+
+
         self.command_pub_roscopter = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
         self.command_pub_mavros = rospy.Publisher('/mavros/setpoint_raw/local', PositionTarget, queue_size=1)
         self.avg_attitude_pub = rospy.Publisher('/quadcopter/attitude_avg', Point, queue_size=1)
@@ -194,78 +211,62 @@ class StateMachine():
         self.avg_attitude_rate = 1.0
         self.avg_attitude_timer = rospy.Timer(rospy.Duration(1.0/self.avg_attitude_rate), self.send_avg_attitude)
 
-        self.status_update_rate = 5.0
-        self.status_timer = rospy.Timer(rospy.Duration(1.0/self.status_update_rate), self.update_status)
+        # self.status_update_rate = 5.0
+        # self.status_timer = rospy.Timer(rospy.Duration(1.0/self.status_update_rate), self.update_status)
 
-        self.command_update_rate = 20.0
+        self.command_update_rate = 30.0
         self.update_timer = rospy.Timer(rospy.Duration(1.0/self.command_update_rate), self.send_commands)
 
 
     def send_commands(self, event):
 
-        time_cur = rospy.get_time()
+        self.update_marker_visibility_status()
 
-        self.ibvs_active_pub_.publish(self.ibvs_active_msg)
-
-        # reset the ibvs counter if we haven't seen the ArUco for more than 1 second
-        if time_cur - self.ibvs_time >= 1.0 and time_cur - self.ibvs_time_inner >= 1.0 and self.counters_frozen == False:
-            self.ibvs_count = 0
-            self.ibvs_count_inner = 0
-            self.ibvs_active_msg.data = False
-            self.status_flag = 'RENDEZVOUS'
-            # print "reset"
-
-        # if the ArUco has been in sight for a while
-        if (self.ibvs_count > self.count_outer_req or self.ibvs_count_inner > self.count_inner_req) and self.status_flag == 'IBVS':
-            
-            self.ibvs_active_msg.data = True
-
-            # if False:
-            if self.ibvs_count_inner > self.count_inner_req:
-
-                # print 'ArUco angle: %f' % np.degrees(self.aruco_angle)
-                # print(self.distance)
-                # in this case we enter an open-loop drop onto the marker
-                if self.distance < 0.5 and self.distance > 0.05 and self.land_mode_sent == False and self.safe_to_land:
-
-                    self.execute_landing()
-                        
-                else:
-                    
-                    self.send_ibvs_command('inner')
-
-                    if self.ibvs_count_inner > 1000:
-                        self.ibvs_count_inner = self.count_inner_req + 1  # reset so it doesn't get too big
-            else:
-
-                self.send_ibvs_command('outer')
-
-                if self.ibvs_count > 1000:
-                    self.ibvs_count = self.count_outer_req + 1  # reset so it doesn't get too big
-
-        # go back to following regular waypoints    
-        else:
-
-            self.send_waypoint_command()
+        self.update_state_machine_status_and_send_command()
 
 
-    def update_status(self, event):
+    def update_state_machine_status_and_send_command(self):
         # print self.status_flag
 
         self.update_wp_error()
 
-        if self.status_flag == 'RENDEZVOUS' and self.wp_error <= self.wp_threshold:
+        # RENDEZVOUS MODE
+        if self.status_flag == 'RENDEZVOUS':
 
-            if self.wind_calc_completed == False:
-                # Switch to wind calibration status
-                self.status_flag = 'WIND_CALIBRATION'
-                self.wind_calc_time = rospy.get_time()
-            elif self.wind_calc_completed == True and self.heading_correction_completed == False:
-                # Perform initial heading correction
-                self.status_flag = 'HEADING_CORRECTION'
+            # Is waypoint error sufficiently small?
+            if self.wp_error <= self.wp_threshold:
+
+                # Has Wind Calibration occured yet?
+                if self.wind_calc_completed == False:
+
+                    # Switch to wind calibration status
+                    self.status_flag = 'WIND_CALIBRATION'
+                    self.wind_calc_time = rospy.get_time()
+
+
+                elif self.wind_calc_completed == True and self.heading_correction_completed == False:
+                    
+                    # Perform initial heading correction
+                    self.status_flag = 'HEADING_CORRECTION'
+
+                else:
+
+                    # Is the target in view?
+                    if self.outer_target_is_visible:
+
+                        # Enter IBVS Mode
+                        self.status_flag = 'IBVS'
+
+                    else:
+
+                        print "Fail. Returning to mode RENDEZVOUS"
+
+
             else:
-                self.status_flag = 'IBVS'
+                self.status_flag = 'RENDEZVOUS'
 
+
+        # WIND CALIBRATION MODE
         if self.status_flag == 'WIND_CALIBRATION':
 
             now = rospy.get_time()
@@ -279,6 +280,8 @@ class StateMachine():
                 self.status_flag = 'RENDEZVOUS'
                 print "Average roll angle: %f \nAverage pitch angle: %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg))
 
+        
+        # HEADING CORRECTION MODE
         if self.status_flag == 'HEADING_CORRECTION':
 
             if self.heading_correction_completed == False:
@@ -300,8 +303,217 @@ class StateMachine():
             if abs(self.relative_heading) <= np.radians(5.0):
                 self.status_flag = 'RENDEZVOUS'
 
+        
+        # IMAGE-BASED VISUAL SERVOING MODE
+        if self.status_flag == 'IBVS':
+
+            self.ibvs_active_msg.data = True
+            self.ibvs_active_pub_.publish(self.ibvs_active_msg)
+            self.enter_ibvs_state_machine()
+
+        # WAYPOINT MODE (RENDEZVOUS, etc.)
+        elif self.status_flag == 'RENDEZVOUS' or self.status_flag == 'WIND_CALIBRATION' or self.status_flag == 'HEADING_CORRECTION':
+
+            self.ibvs_active_msg.data = False
+            self.ibvs_active_pub_.publish(self.ibvs_active_msg)
+            self.send_waypoint_command()
+
+        # LAND MODE
+        else:
+
+            self.ibvs_active_msg.data = False
+            self.ibvs_active_pub_.publish(self.ibvs_active_msg)
+
+
         self.status_flag_msg.data = self.status_flag
         self.status_flag_pub.publish(self.status_flag_msg)
+
+
+    def enter_ibvs_state_machine(self):
+
+        # Is the current target still visible?
+        if self.current_target_is_visible:
+
+            if self.current_target == 'aruco_outer':
+
+                # Is the inner target visible?
+                if self.inner_target_is_visible:
+
+                    # Has the outer target been driven to its desired location?
+                    if self.p_des_error_outer <= self.p_des_error_outer_threshold:
+
+                        # Switch to controlling off of the inner ArUco
+                        self.execute_ibvs('inner')
+                    else:
+
+                        # Execute IBVS(outer)
+                        self.execute_ibvs('outer')
+
+                else:
+
+                    # Execute IBVS(outer)
+                    self.execute_ibvs('outer')
+
+            elif self.current_target == 'aruco_inner':
+
+                # Execute IBVS(inner)
+                self.execute_ibvs('inner')
+
+            else:
+
+                print "State Machine: Invalid current_target flag."
+
+        else:
+
+            # Is the other target visible?
+            if self.other_target_is_visible:
+
+                # Execute IBVS(other)
+                self.execute_ibvs('other')
+
+            else:
+
+                # Return to mode RENDEZVOUS
+                self.status_flag = 'RENDEZVOUS'
+
+                # Maybe should set current_target = 'aruco_outer' here
+
+
+    def execute_ibvs(self, target_flag):
+
+        # Is target flag == 'outer'
+        if target_flag == 'outer':
+
+            # Set the current target flag
+            self.current_target = 'aruco_outer'
+
+            # Send the command
+            self.send_ibvs_command('outer')
+
+        # Is target flag == 'inner'
+        elif target_flag == 'inner':
+
+            # Is the distance to the ArUco sufficiently small?
+            if self.distance <= self.landing_distance_threshold:
+
+                # Is the target sufficiently level?
+                if self.safe_to_land:
+
+                    # Execute Landing!!!
+                    self.execute_landing()
+
+                else:
+                    # Set the current target flag
+                    self.current_target = 'aruco_inner'
+
+                    # Send the command
+                    self.send_ibvs_command('inner')
+
+            else:
+
+                # Set the current target flag
+                self.current_target = 'aruco_inner'
+
+                # Send the command
+                self.send_ibvs_command('inner')
+
+        # Target flag == 'other'
+        else:
+
+            # Send other ibvs
+            if self.current_target == 'aruco_outer':
+
+                self.current_target = 'aruco_inner'
+                self.send_ibvs_command('inner')
+
+            else:
+
+                self.current_target = 'aruco_outer'
+                self.send_ibvs_command('outer')
+
+
+    def update_marker_visibility_status(self):
+
+        now = rospy.get_time()
+
+        # If it has been less than a second since we last saw the outer target
+        if now - self.ibvs_time_outer <= 1.0:
+
+            self.outer_target_is_visible = True
+
+        else:
+
+            self.outer_target_is_visible = False
+
+        
+        # If it has been less than a second since we last saw the outer target
+        if now - self.ibvs_time_inner <= 1.0:
+
+            self.inner_target_is_visible = True
+
+        else:
+
+            self.inner_target_is_visible = False
+
+
+        # If current_target == 'aruco_outer'
+        if self.current_target == 'aruco_outer':
+
+            if self.outer_target_is_visible:
+
+                self.current_target_is_visible = True
+
+                if self.inner_target_is_visible:
+
+                    self.other_target_is_visible = True
+
+                else:
+
+                    self.other_target_is_visible = False
+
+            else:
+
+                self.current_target_is_visible = False
+
+                if self.inner_target_is_visible:
+
+                    self.other_target_is_visible = True
+
+                else:
+
+                    self.other_target_is_visible = False
+
+        
+        # If current_target == 'aruco_inner'
+        elif self.current_target == 'aruco_inner':
+
+            if self.inner_target_is_visible:
+
+                self.current_target_is_visible = True
+
+                if self.outer_target_is_visible:
+
+                    self.other_target_is_visible = True
+
+                else:
+
+                    self.other_target_is_visible = False
+
+            else:
+
+                self.current_target_is_visible = False
+
+                if self.outer_target_is_visible:
+
+                    self.other_target_is_visible = True
+
+                else:
+
+                    self.other_target_is_visible = False
+
+        else:
+
+            print 'State Machine: Invalid target flag.'
 
 
     def execute_landing(self):
@@ -315,12 +527,13 @@ class StateMachine():
                 if isModeChanged:
                     self.land_mode_sent = True
                     print "mode %s sent." % 'AUTO.LAND'
+                    self.status_flag = 'LAND'
 
             except rospy.ServiceException, e:
                 print "service call set_mode failed: %s" % e
 
         else:
-            self.counters_frozen = True
+            
             command_msg = Command()
             command_msg.x = 0.0
             command_msg.y = 0.0
@@ -328,6 +541,7 @@ class StateMachine():
             command_msg.z = 0.0
             command_msg.mode = Command.MODE_ROLL_PITCH_YAWRATE_THROTTLE
             self.command_pub_roscopter.publish(command_msg)
+            self.status_flag = 'LAND'
 
 
     def send_ibvs_command(self, flag):
@@ -523,10 +737,10 @@ class StateMachine():
         # print '\nx_vel:', self.ibvs_x, '\ny_vel:', self.ibvs_y, '\nz_vel:', self.ibvs_F
 
         # increment the counter
-        self.ibvs_count += 1
+        # self.ibvs_count += 1
 
         # get the time
-        self.ibvs_time = rospy.get_time()
+        self.ibvs_time_outer = rospy.get_time()
 
 
     def ibvs_velocity_cmd_inner_callback(self, msg):
@@ -559,10 +773,15 @@ class StateMachine():
 
 
         # increment the counter
-        self.ibvs_count_inner += 1
+        # self.ibvs_count_inner += 1
 
         # get the time
         self.ibvs_time_inner = rospy.get_time()
+
+
+    def ibvs_ave_error_callback(self, msg):
+
+        self.p_des_error_outer = msg.data
 
 
     def aruco_inner_distance_callback(self, msg):

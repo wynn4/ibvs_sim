@@ -124,6 +124,7 @@
     <remap from="/ibvs/pdes" to="/ibvs/pdes_outer"/>
     <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
     <remap from="/aruco/distance" to="/aruco/distance_outer"/>
+    <remap from="/ibvs/ibvs_error" to="/ibvs/ibvs_error_outer" />
   </node>
 
   <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs_adaptive.py" output="screen">
@@ -131,6 +132,7 @@
     <remap from="/aruco/marker_corners" to="/aruco/marker_corners_inner"/>
     <remap from="/aruco/distance" to="/aruco/distance_inner"/>
     <remap from="/ibvs/vel_cmd" to="/ibvs_inner/vel_cmd"/>
+    <remap from="/ibvs/ibvs_error" to="/ibvs/ibvs_error_inner" />
   </node>
 
   <!-- Level-frame visualizer -->
