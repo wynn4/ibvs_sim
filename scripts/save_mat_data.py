@@ -19,8 +19,9 @@ class SaveMatData(object):
     def __init__(self):
 
         # File string
-        file_str_outer = rospy.get_param('~filename_outer', 'ibvs_data_outer.mat')
-        file_str_inner = rospy.get_param('~filename_inner', 'ibvs_data_inner.mat')
+        filename = rospy.get_param('~filename', '')
+        file_str_outer = rospy.get_param('~filename_outer', filename + 'ibvs_data_outer.mat')
+        file_str_inner = rospy.get_param('~filename_inner', filename +'ibvs_data_inner.mat')
         self.outfile_str_outer = path.expanduser('~/') + file_str_outer
         self.outfile_str_inner = path.expanduser('~/') + file_str_inner
 
@@ -313,6 +314,11 @@ class SaveMatData(object):
 
         self.status_flag = msg.data
 
+        if self.status_flag == 'IBVS':
+            self.mode = 1.0
+        else:
+            self.mode = 0.0
+
 
     def attitude_callback(self, msg):
 
@@ -365,9 +371,10 @@ def main():
     except KeyboardInterrupt:
         print("Shutting down")
 
-    # Save off the data file
-    # if visualizer.save_data:
-    #     scipy.io.savemat(visualizer.outfile_str, mdict={'arr': visualizer.data_array_outer})
+    # Save off the .mat data file
+    if not saver.data_saved:
+        scipy.io.savemat(saver.outfile_str_outer, mdict={'arr': saver.data_array_outer})
+        scipy.io.savemat(saver.outfile_str_inner, mdict={'arr': saver.data_array_inner})
 
 
 if __name__ == '__main__':
