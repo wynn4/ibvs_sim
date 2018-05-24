@@ -44,7 +44,7 @@
     <arg name="calibrated" default="true" />
 
     <!-- ArUco args -->
-    <arg name="show_aruco_frame" default="false" />
+    <arg name="show_aruco_frame" value="false" />
 	
     
     <!--  -->
@@ -101,24 +101,6 @@
         <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
         <remap from="/aruco/distance" to="/aruco/distance_outer"/>
         <remap from="/ibvs/ibvs_error" to="/ibvs/ibvs_error_outer" />
-
-        <remap from="/quadcopter/estimate" to="/mavros_ned/estimate" />
-        <remap from="/quadcopter/camera/camera_info" to="/camera_info" />
-    </node>
-
-    <!-- IBVS Inner -->
-    <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs_adaptive.py" output="screen">
-
-        <param name="lambda_vx" value="$(arg lambda_vx)"/>
-        <param name="lambda_vy" value="$(arg lambda_vy)"/>
-        <param name="lambda_vz" value="$(arg lambda_vz)"/>
-        <param name="lambda_wz" value="$(arg lambda_wz)"/>
-
-        <remap from="/ibvs/pdes" to="/ibvs/pdes_inner"/>
-        <remap from="/aruco/marker_corners" to="/aruco/marker_corners_inner"/>
-        <remap from="/aruco/distance" to="/aruco/distance_inner"/>
-        <remap from="/ibvs/vel_cmd" to="/ibvs_inner/vel_cmd"/>
-        <remap from="/ibvs/ibvs_error" to="/ibvs/ibvs_error_inner" />
 
         <remap from="/quadcopter/estimate" to="/mavros_ned/estimate" />
         <remap from="/quadcopter/camera/camera_info" to="/camera_info" />
