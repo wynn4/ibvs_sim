@@ -104,6 +104,7 @@ class StateMachine():
         else:
             # this assumes we're in roscopter mode and state comes in at ~170 hz
             self.queue_length = 170*self.wind_window_seconds
+
         self.phi_queue = deque(maxlen=self.queue_length)
         self.theta_queue = deque(maxlen=self.queue_length)
 
@@ -134,8 +135,10 @@ class StateMachine():
         self.ibvs_F = 0.0
         self.ibvs_z = 0.0
 
+        self.visibility_queue_length = 5
         self.ibvs_count = 0
         self.ibvs_time_outer = rospy.get_time() - 100.0  # In the past
+        self.ibvs_time_queue_outer = deque(maxlen=self.visibility_queue_length)
 
         # inner
         self.ibvs_x_inner = 0.0
@@ -145,6 +148,12 @@ class StateMachine():
 
         self.ibvs_count_inner = 0
         self.ibvs_time_inner = rospy.get_time() - 100.0  # In the past
+        self.ibvs_time_queue_inner = deque(maxlen=self.visibility_queue_length)
+
+        # Fill up the queues with 'old' timestamps
+        for x in range(0,self.visibility_queue_length):
+            self.ibvs_time_queue_outer.appendleft(self.ibvs_time_outer)
+            self.ibvs_time_queue_inner.appendleft(self.ibvs_time_inner)
 
         self.distance = 10.0
 
@@ -220,9 +229,13 @@ class StateMachine():
 
     def send_commands(self, event):
 
+        # then = rospy.get_time()
         self.update_marker_visibility_status()
 
         self.update_state_machine_status_and_send_command()
+        # now = rospy.get_time()
+        # secs = now - then
+        # print 'Loop seconds: %f' % secs
 
 
     def update_state_machine_status_and_send_command(self):
@@ -433,28 +446,6 @@ class StateMachine():
 
 
     def update_marker_visibility_status(self):
-
-        now = rospy.get_time()
-
-        # If it has been less than a second since we last saw the outer target
-        if now - self.ibvs_time_outer <= 1.0:
-
-            self.outer_target_is_visible = True
-
-        else:
-
-            self.outer_target_is_visible = False
-
-        
-        # If it has been less than a second since we last saw the outer target
-        if now - self.ibvs_time_inner <= 1.0:
-
-            self.inner_target_is_visible = True
-
-        else:
-
-            self.inner_target_is_visible = False
-
 
         # If current_target == 'aruco_outer'
         if self.current_target == 'aruco_outer':
@@ -736,11 +727,16 @@ class StateMachine():
 
         # print '\nx_vel:', self.ibvs_x, '\ny_vel:', self.ibvs_y, '\nz_vel:', self.ibvs_F
 
-        # increment the counter
-        # self.ibvs_count += 1
-
+        # Make sure we've seen the marker at least 5 times within the last second
         # get the time
         self.ibvs_time_outer = rospy.get_time()
+        self.ibvs_time_queue_outer.appendleft(self.ibvs_time_outer)
+
+        if self.ibvs_time_outer - self.ibvs_time_queue_outer[-1] <= 1.0:
+            self.outer_target_is_visible = True
+        else:
+            self.outer_target_is_visible = False
+
 
 
     def ibvs_velocity_cmd_inner_callback(self, msg):
@@ -772,11 +768,15 @@ class StateMachine():
             self.ibvs_z_inner = msg.angular.z
 
 
-        # increment the counter
-        # self.ibvs_count_inner += 1
-
+        # Make sure we've seen the marker at least 5 times within the last second
         # get the time
         self.ibvs_time_inner = rospy.get_time()
+        self.ibvs_time_queue_inner.appendleft(self.ibvs_time_inner)
+
+        if self.ibvs_time_inner - self.ibvs_time_queue_inner[-1] <= 1.0:
+            self.inner_target_is_visible = True
+        else:
+            self.inner_target_is_visible = False
 
 
     def ibvs_ave_error_callback(self, msg):
