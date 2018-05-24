@@ -85,7 +85,7 @@ class StateMachine():
         self.wp_N = 5.0
         self.wp_E = 5.0
         self.wp_D = -self.rendezvous_height
-        self.heading_command = np.radians(-179.0)
+        self.heading_command = np.radians(0.0)
 
         self.wind_calc_completed = False
         self.wind_window_seconds = 5
