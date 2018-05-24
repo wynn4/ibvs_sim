@@ -27,7 +27,10 @@ class ImageBasedVisualServoing(object):
     def __init__(self):
 
         # load ROS params
-        # p_des = rospy.get_param('~p_des', [0., 0., 0., 0., 0., 0., 0., 0.])
+        lambda_vx = rospy.get_param('~lambda_vx', 0.5)
+        lambda_vy = rospy.get_param('~lambda_vy', 0.5)
+        lambda_vz = rospy.get_param('~lambda_vz', 0.7)
+        lambda_wz = rospy.get_param('~lambda_wz', 0.5)
 
         ## initialize other class variables
 
@@ -71,8 +74,8 @@ class ImageBasedVisualServoing(object):
         self.z_c = 10.0  # initialize to be greater than zero
 
         # lambda from Corke eq. 15.11 (turning param)
-        self.lam2DOF = np.array([0.5, 0.5], dtype=np.float32).reshape(2,1)  # 2x1
-        self.lam4DOF = np.array([0.5, 0.5, 0.7, 0.5], dtype=np.float32).reshape(4,1)  # 4x1
+        self.lam2DOF = np.array([lambda_vx, lambda_vy], dtype=np.float32).reshape(2,1)  # 2x1
+        self.lam4DOF = np.array([lambda_vx, lambda_vy, lambda_vz, lambda_wz], dtype=np.float32).reshape(4,1)  # 4x1
 
         self.p_centroid = np.array([0.0, 0.0], dtype=np.float32).reshape(2,1)
         self.p_des_centroid = np.array([0.0, 0.0], dtype=np.float32).reshape(2,1)
