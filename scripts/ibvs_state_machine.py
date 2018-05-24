@@ -24,7 +24,7 @@ from collections import deque
 # TODO:
 # - Add wind-compensated rendezvous point -- Done April 6, 2018
 # - Don't switch into IBVS until you've reached the rendezvous point -- Done April 6, 2018
-# - Handle switching to the inner marker corners better
+# - Handle switching to the inner marker corners better -- Done May 24
 #    - The count method isn't great
 # - Touchdown timing
 #    -don't land when the aruco is rolled or pitched a lot -- Done May 9, 2018
@@ -68,9 +68,6 @@ class StateMachine():
         self.v_max_inner = rospy.get_param('~v_max_inner', 0.2)
         self.w_max_inner = rospy.get_param('~w_max_inner', 0.2)
 
-        self.count_outer_req = rospy.get_param('~count_outer', 100)
-        self.count_inner_req = rospy.get_param('~count_inner', 50)
-
         self.rendezvous_height = rospy.get_param('~rendezvous_height', 10.0)
         self.wp_threshold = rospy.get_param('~wp_threshold', 1.0)
 
@@ -85,8 +82,8 @@ class StateMachine():
         self.target_E = 0.0
 
         # Initialize waypoint setpoint
-        self.wp_N = 0.0
-        self.wp_E = 0.0
+        self.wp_N = 5.0
+        self.wp_E = 5.0
         self.wp_D = -self.rendezvous_height
         self.heading_command = np.radians(-179.0)
 
@@ -207,7 +204,7 @@ class StateMachine():
         self.command_pub_roscopter = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
         self.command_pub_mavros = rospy.Publisher('/mavros/setpoint_raw/local', PositionTarget, queue_size=1)
         self.avg_attitude_pub = rospy.Publisher('/quadcopter/attitude_avg', Point, queue_size=1)
-        self.ibvs_active_pub_ = rospy.Publisher('ibvs_active', Bool, queue_size=1)
+        self.ibvs_active_pub_ = rospy.Publisher('/quadcopter/ibvs_active', Bool, queue_size=1)
         self.status_flag_pub = rospy.Publisher('/status_flag', String, queue_size=1)
 
         # Set Up Service Proxy
