@@ -9,8 +9,8 @@
     <arg name="test_name" />
 
     <!-- Target Location args -->
-    <arg name="target_N" value="10.0" />
-    <arg name="target_E" value="10.0" />
+    <arg name="tn" />
+    <arg name="te" />
 
     <!-- State Machine args -->
     <arg name="u_max_outer" value="0.2" />
@@ -185,9 +185,9 @@
     <!-- Target Publisher -->
     <!--  -->
 
-    <node name="target_publisher" pkg="ibvs_sim" type="target_pub.py">
-        <param name="target_N" value="$(arg target_N)" />
-        <param name="target_E" value="$(arg target_E)" />
+    <node name="target_publisher" pkg="ibvs_sim" type="target_pub.py" output="screen">
+        <param name="target_N" value="$(arg tn)" />
+        <param name="target_E" value="$(arg te)" />
     </node>
 
 
