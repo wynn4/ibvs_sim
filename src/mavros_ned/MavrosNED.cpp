@@ -64,7 +64,7 @@ namespace mavros_ned
 
         // Convert back to quaternion
         // quatFrd_ = tf::createQuaternionFromRPY(eulerFrd_(0,0), eulerFrd_(1,0), eulerFrd_(2,0));
-        quatFrd_ = tf::createQuaternionMsgFromRollPitchYaw(eulerFrd_(0,0), eulerFrd_(1,0), eulerFrd_(2,0));
+        quatFrd_ = tf::createQuaternionMsgFromRollPitchYaw(eulerFrd_(0,0), eulerFrd_(1,0), eulerFrd_(2,0) + 1.5707963);
 
         // Publish estimate data
         publishEstimate();
