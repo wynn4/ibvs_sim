@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<launch>
+	<!-- Launch file for PX4 and IBVS -->
+	<!-- JSW May 2018 -->
+
+    <!--  -->
+    <!-- ARGS -->
+    <!--  -->
+    <arg name="heading" />
+	
+    
+    <!--  -->
+    <!-- PX4 -->
+    <!--  -->
+
+    <!-- Launch PX4 pixhawk (taken from mavros px4.launch) -->
+	<arg name="fcu_url" default="/dev/ttyUSB0:921600" />
+	<arg name="gcs_url" default="" />
+	<arg name="tgt_system" default="1" />
+	<arg name="tgt_component" default="1" />
+	<arg name="log_output" default="screen" />
+
+	<include file="$(find mavros)/launch/node.launch">
+	    <arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml" />
+		<arg name="config_yaml" value="$(find mavros)/launch/px4_config.yaml" />
+
+		<arg name="fcu_url" value="$(arg fcu_url)" />
+		<arg name="gcs_url" value="$(arg gcs_url)" />
+		<arg name="tgt_system" value="$(arg tgt_system)" />
+		<arg name="tgt_component" value="$(arg tgt_component)" />
+		<arg name="log_output" value="$(arg log_output)" />
+	</include>
+
+
+	<!--  -->
+    <!-- MAVROS NED -->
+    <!--  -->
+
+    <!-- Node to convert mavros data to NED estimate data -->
+	<node name="mavros_ned" pkg="ibvs_sim" type="mavros_ned" output="screen" />
+
+
+	<!-- -->
+	<!-- MAVROS Heading Publisher -->
+	<!--  -->
+
+	<node name="heading_pub" pkg="ibvs_sim" type="test_mavros_heading.py" output="screen" >
+		<param name="heading" value="$(arg heading)"/>
+	</node>
+
+
+</launch>
