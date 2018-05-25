@@ -22,7 +22,7 @@ class PrintEuler(object):
         self.psi = 0.0
 
         self.degrees = rospy.get_param('~is_in_degrees', True)
-        self.topic_str = rospy.get_param('~topic_string', '/mavros_ned_node/estimate')
+        self.topic_str = rospy.get_param('~topic_string', '/mavros_ned/estimate')
 
         # Initialize subscriber
         self.state_sub = rospy.Subscriber(self.topic_str, Odometry, self.state_callback)
