@@ -51,7 +51,11 @@ class TestMAVROS(object):
         waypoint_command_msg.position.y = 0.0  # N
         waypoint_command_msg.position.z = 15.0  # U
 
-        waypoint_command_msg.yaw = self.heading
+        yaw = -self.heading + np.radians(90.0)
+        while yaw > np.radians(180.0):  yaw = yaw - np.radians(360.0)
+        while yaw < np.radians(-180.0):  yaw = yaw + np.radians(360.0)
+
+        waypoint_command_msg.yaw = yaw
 
         # Publish.
         self.command_pub.publish(waypoint_command_msg)
