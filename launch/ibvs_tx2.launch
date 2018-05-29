@@ -21,7 +21,7 @@
     <arg name="v_max_inner" value="0.2" />
     <arg name="w_max_inner" value="0.4" />
 
-    <arg name="rendezvous_height" value="10.0" />
+    <arg name="rendezvous_height" value="15.0" />
     <arg name="wp_threshold" value="1.0" />
 
     <arg name="landing_distance_threshold" value="0.5" />

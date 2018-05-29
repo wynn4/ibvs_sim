@@ -310,7 +310,7 @@ class StateMachine():
                 # print "Average roll angle: %f \nAverage pitch angle: %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg))
 
                 self.heading_correction_completed = True
-            if abs(self.relative_heading) <= np.radians(5.0):
+            if abs(self.relative_heading) <= np.radians(30.0):
                 self.status_flag = 'RENDEZVOUS'
 
         
@@ -607,7 +607,12 @@ class StateMachine():
             waypoint_command_msg.position.y = self.wp_N  # N
             waypoint_command_msg.position.z = self.rendezvous_height  # U
 
-            waypoint_command_msg.yaw = self.heading_command  # Point North?
+            # This converts an NED heading command into an ENU heading command
+            yaw = -self.heading_command + np.radians(90.0)
+            while yaw > np.radians(180.0):  yaw = yaw - np.radians(360.0)
+            while yaw < np.radians(-180.0):  yaw = yaw + np.radians(360.0)
+
+            waypoint_command_msg.yaw = yaw
 
             # Publish.
             self.command_pub_mavros.publish(waypoint_command_msg)
