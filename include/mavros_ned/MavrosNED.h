@@ -6,8 +6,9 @@
 #include <ros/ros.h>
 #include <eigen3/Eigen/Dense>
 
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/TwistStamped.h>
+// #include <geometry_msgs/PoseStamped.h>
+// #include <geometry_msgs/TwistStamped.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
 #include <tf/tf.h>
 
@@ -25,10 +26,12 @@ namespace mavros_ned
 
         // ROS publisher
         ros::Publisher estimate_pub_;
+        ros::Publisher euler_pub_;
 
         // ROS subscribers
-        ros::Subscriber pose_sub_;
-        ros::Subscriber velocity_sub_;
+        // ros::Subscriber pose_sub_;
+        // ros::Subscriber velocity_sub_;
+        ros::Subscriber odom_sub_;
 
         // Static Rotations
         Eigen::Matrix3d R_flu_frd_;
@@ -36,6 +39,9 @@ namespace mavros_ned
 
         // Estimate Message
         nav_msgs::Odometry estimate_msg_;
+
+        // Euler Message
+        geometry_msgs::Vector3Stamped euler_msg_;
 
         // Eigen Matrices to hold incoming mavros data
         Eigen::Matrix<double, 3, 1> eulerFlu_;
@@ -56,11 +62,8 @@ namespace mavros_ned
         // Methods
         //
 
-        // mavros pose subscriber
-        void poseCallback(const geometry_msgs::PoseStampedConstPtr& msg);
-
-        // mavros velocity subscriber
-        void velocityCallback(const geometry_msgs::TwistStampedConstPtr& msg);
+        // mavros odom subscriber
+        void odomCallback(const nav_msgs::OdometryConstPtr& msg);
 
         void publishEstimate();
 

@@ -30,22 +30,22 @@ namespace mavros_ned
 
 	 	// Register ROS Publisher
 	 	estimate_pub_ = nh_private_.advertise<nav_msgs::Odometry>("estimate", 1);
+	 	euler_pub_ = nh_private_.advertise<geometry_msgs::Vector3Stamped>("euler", 1);
 
 	 	// Register ROS Subscribers
-	 	pose_sub_ = nh_.subscribe("/mavros/local_position/pose", 1, &MavrosNED::poseCallback, this);
-	 	velocity_sub_ = nh_.subscribe("/mavros/local_position/velocity", 1, &MavrosNED::velocityCallback, this);
+	 	odom_sub_ = nh_.subscribe("/mavros/local_position/odom", 1, &MavrosNED::odomCallback, this);
 	 }
 
 	 //
 	 // Private Methods
 	 //
 
-	 void MavrosNED::poseCallback(const geometry_msgs::PoseStampedConstPtr& msg)
+	 void MavrosNED::odomCallback(const nav_msgs::OdometryConstPtr& msg)
 	 {
 	 	// Pull off the ENU position data
-	 	positionEnu_(0,0) = msg->pose.position.x;
-	 	positionEnu_(1,0) = msg->pose.position.y;
-	 	positionEnu_(2,0) = msg->pose.position.z;
+	 	positionEnu_(0,0) = msg->pose.pose.position.x;
+	 	positionEnu_(1,0) = msg->pose.pose.position.y;
+	 	positionEnu_(2,0) = msg->pose.pose.position.z;
 
         // Rotate into NED frame
         positionNED_ = enuToNed(positionEnu_);
@@ -53,7 +53,7 @@ namespace mavros_ned
         // Pull off the ENU orientation data
         tf::Quaternion tf_quat;
         double phi, theta, psi;
-        tf::quaternionMsgToTF(msg->pose.orientation, tf_quat);
+        tf::quaternionMsgToTF(msg->pose.pose.orientation, tf_quat);
         tf::Matrix3x3(tf_quat).getRPY(phi, theta, psi);
         eulerFlu_(0,0) = phi;
         eulerFlu_(1,0) = theta;
@@ -66,29 +66,24 @@ namespace mavros_ned
         // quatFrd_ = tf::createQuaternionFromRPY(eulerFrd_(0,0), eulerFrd_(1,0), eulerFrd_(2,0));
         quatFrd_ = tf::createQuaternionMsgFromRollPitchYaw(eulerFrd_(0,0), eulerFrd_(1,0), eulerFrd_(2,0) + 1.5707963);
 
-        // Publish estimate data
-        publishEstimate();
-	 }
-
-
-	 void MavrosNED::velocityCallback(const geometry_msgs::TwistStampedConstPtr& msg)
-	 {
-	 	// Pull off the RFU linear velocity data
-	 	velLinRfu_(0,0) = msg->twist.linear.x;
-	 	velLinRfu_(1,0) = msg->twist.linear.y;
-	 	velLinRfu_(2,0) = msg->twist.linear.z;
+        // Pull off the RFU linear velocity data
+	 	velLinRfu_(0,0) = msg->twist.twist.linear.x;
+	 	velLinRfu_(1,0) = msg->twist.twist.linear.y;
+	 	velLinRfu_(2,0) = msg->twist.twist.linear.z;
 
 	 	// Rotate it into the FRD frame
-	 	velLinFrd_ = enuToNed(velLinRfu_);
+	 	velLinFrd_ = fluToFrd(velLinRfu_);
 
 	 	// Pull off the RFU angular velocity data
-	 	velAngFlu_(0,0) = msg->twist.angular.x;
-	 	velAngFlu_(1,0) = msg->twist.angular.y;
-	 	velAngFlu_(2,0) = msg->twist.angular.z;
+	 	velAngFlu_(0,0) = msg->twist.twist.angular.x;
+	 	velAngFlu_(1,0) = msg->twist.twist.angular.y;
+	 	velAngFlu_(2,0) = msg->twist.twist.angular.z;
 
 	 	// Rotate it into the FRD frame
 	 	velAngFrd_ = fluToFrd(velAngFlu_);
 
+        // Publish estimate data
+        publishEstimate();
 	 }
 
 
@@ -116,8 +111,18 @@ namespace mavros_ned
 	 	estimate_msg_.twist.twist.angular.y = velAngFrd_(1,0);
 	 	estimate_msg_.twist.twist.angular.z = velAngFrd_(2,0);
 
+	 	// Fill out the euler message
+	 	// Header
+	 	euler_msg_.header.stamp = estimate_msg_.header.stamp;
+
+	 	// Euler Angles (RPY)
+	 	euler_msg_.vector.x = eulerFrd_(0,0);
+	 	euler_msg_.vector.y = eulerFrd_(1,0);
+	 	euler_msg_.vector.z = eulerFrd_(2,0);
+
 	 	// Publish
 	 	estimate_pub_.publish(estimate_msg_);
+	 	euler_pub_.publish(euler_msg_);
 	 }
 
 
