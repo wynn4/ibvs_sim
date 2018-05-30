@@ -6,10 +6,8 @@
 #include <ros/ros.h>
 #include <eigen3/Eigen/Dense>
 
-// #include <geometry_msgs/PoseStamped.h>
-// #include <geometry_msgs/TwistStamped.h>
-#include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <tf/tf.h>
 
 namespace mavros_ned
@@ -29,8 +27,6 @@ namespace mavros_ned
         ros::Publisher euler_pub_;
 
         // ROS subscribers
-        // ros::Subscriber pose_sub_;
-        // ros::Subscriber velocity_sub_;
         ros::Subscriber odom_sub_;
 
         // Static Rotations
