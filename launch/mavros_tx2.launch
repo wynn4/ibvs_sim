@@ -13,7 +13,7 @@
     <!--  -->
 
     <!-- Launch PX4 pixhawk (taken from mavros px4.launch) -->
-	<arg name="fcu_url" default="/dev/ttyTHS1:921600" />
+	<arg name="fcu_url" default="/dev/ttyTHS2:921600" />
 	<arg name="gcs_url" default="" />
 	<arg name="tgt_system" default="1" />
 	<arg name="tgt_component" default="1" />
