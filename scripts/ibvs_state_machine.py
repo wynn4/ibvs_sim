@@ -87,6 +87,8 @@ class StateMachine():
         self.wp_D = -self.rendezvous_height
         self.heading_command = np.radians(0.0)
 
+        self.relative_heading = 0.0
+
         self.wind_calc_completed = False
         self.wind_window_seconds = 5
         self.wind_calc_duration = 5.0
@@ -96,8 +98,8 @@ class StateMachine():
 
         # Initialize queues
         if self.mode_flag == 'mavros':
-            # this assumes state estimates at ~30 hz which gives us 5 seconds of data
-            self.queue_length = 30*self.wind_window_seconds
+            # this assumes state estimates at ~60 hz which gives us 5 seconds of data
+            self.queue_length = 60*self.wind_window_seconds
         else:
             # this assumes we're in roscopter mode and state comes in at ~170 hz
             self.queue_length = 170*self.wind_window_seconds
@@ -444,6 +446,18 @@ class StateMachine():
 
     def update_marker_visibility_status(self):
 
+        now = rospy.get_time()
+
+        if now - self.ibvs_time_queue_outer[-1] <= 1.0:
+            self.outer_target_is_visible = True
+        else:
+            self.outer_target_is_visible = False
+
+        if now - self.ibvs_time_queue_inner[-1] <= 1.0:
+            self.inner_target_is_visible = True
+        else:
+            self.inner_target_is_visible = False
+
         # If current_target == 'aruco_outer'
         if self.current_target == 'aruco_outer':
 
@@ -734,12 +748,6 @@ class StateMachine():
         self.ibvs_time_outer = rospy.get_time()
         self.ibvs_time_queue_outer.appendleft(self.ibvs_time_outer)
 
-        if self.ibvs_time_outer - self.ibvs_time_queue_outer[-1] <= 1.0:
-            self.outer_target_is_visible = True
-        else:
-            self.outer_target_is_visible = False
-
-
 
     def ibvs_velocity_cmd_inner_callback(self, msg):
 
@@ -774,11 +782,6 @@ class StateMachine():
         # get the time
         self.ibvs_time_inner = rospy.get_time()
         self.ibvs_time_queue_inner.appendleft(self.ibvs_time_inner)
-
-        if self.ibvs_time_inner - self.ibvs_time_queue_inner[-1] <= 1.0:
-            self.inner_target_is_visible = True
-        else:
-            self.inner_target_is_visible = False
 
 
     def ibvs_ave_error_callback(self, msg):

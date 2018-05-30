@@ -208,7 +208,7 @@
     <!--  -->
 
     <group if="$(arg record_rosbag)">
-        <node name="record" pkg="rosbag" type="record" args="/mavros/local_position/pose /mavros/local_position/velocity /mavros_ned/estimate /aruco/marker_corners_outer /aruco/marker_corners_inner /camera_info /aruco/image/compressed /aruco/estimate -o $(arg test_name)" />
+        <node name="record" pkg="rosbag" type="record" args="/mavros/local_position/pose /mavros/local_position/velocity /mavros_ned/estimate /aruco/marker_corners_outer /aruco/marker_corners_inner /camera_info /aruco/image/compressed /aruco/estimate /aruco/distance_inner /aruco/heading_outer -o $(arg test_name)" />
     </group>
 
 
