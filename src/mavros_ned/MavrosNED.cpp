@@ -51,13 +51,11 @@ namespace mavros_ned
         positionNED_ = enuToNed(positionEnu_);
 
         // Pull off the ENU orientation data
-        tf::Quaternion tf_quat;
-        double phi, theta, psi;
-        tf::quaternionMsgToTF(msg->pose.pose.orientation, tf_quat);
-        tf::Matrix3x3(tf_quat).getRPY(phi, theta, psi);
-        eulerFlu_(0,0) = phi;
-        eulerFlu_(1,0) = theta;
-        eulerFlu_(2,0) = psi;
+        tf::quaternionMsgToTF(msg->pose.pose.orientation, tf_quat_);
+        tf::Matrix3x3(tf_quat_).getRPY(phi_, theta_, psi_);
+        eulerFlu_(0,0) = phi_;
+        eulerFlu_(1,0) = theta_;
+        eulerFlu_(2,0) = psi_;
 
         // Rotate into NED frame
         eulerFrd_ = fluToFrd(eulerFlu_);

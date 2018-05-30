@@ -24,7 +24,7 @@ namespace mavros_ned
 
         // ROS publisher
         ros::Publisher estimate_pub_;
-        ros::Publisher euler_pub_;
+        // ros::Publisher euler_pub_;
 
         // ROS subscribers
         ros::Subscriber odom_sub_;
@@ -52,7 +52,13 @@ namespace mavros_ned
         Eigen::Matrix<double, 3, 1> velAngFrd_;
 
         // tf::Quaternion quatFrd_;
+        tf::Quaternion tf_quat_;
         geometry_msgs::Quaternion quatFrd_;
+
+        // Euler angles
+        double phi_;
+        double theta_;
+        double psi_;
 
         //
         // Methods
