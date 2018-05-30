@@ -7,6 +7,7 @@
 #include <eigen3/Eigen/Dense>
 
 #include <nav_msgs/Odometry.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <tf/tf.h>
 
@@ -24,9 +25,10 @@ namespace mavros_ned
 
         // ROS publisher
         ros::Publisher estimate_pub_;
-        // ros::Publisher euler_pub_;
+        ros::Publisher euler_pub_;
 
         // ROS subscribers
+        ros::Subscriber pose_sub_;
         ros::Subscriber odom_sub_;
 
         // Static Rotations
@@ -63,6 +65,9 @@ namespace mavros_ned
         //
         // Methods
         //
+
+        // mavros pose subscriber
+        void poseCallback(const geometry_msgs::PoseStampedConstPtr& msg);
 
         // mavros odom subscriber
         void odomCallback(const nav_msgs::OdometryConstPtr& msg);

@@ -33,6 +33,7 @@ namespace mavros_ned
 	 	euler_pub_ = nh_private_.advertise<geometry_msgs::Vector3Stamped>("euler", 1);
 
 	 	// Register ROS Subscribers
+	 	pose_sub_ = nh_.subscribe("/mavros/local_position/pose", 1, &MavrosNED::poseCallback, this);
 	 	odom_sub_ = nh_.subscribe("/mavros/local_position/odom", 1, &MavrosNED::odomCallback, this);
 	 }
 
@@ -40,18 +41,18 @@ namespace mavros_ned
 	 // Private Methods
 	 //
 
-	 void MavrosNED::odomCallback(const nav_msgs::OdometryConstPtr& msg)
+	 void MavrosNED::poseCallback(const geometry_msgs::PoseStampedConstPtr& msg)
 	 {
 	 	// Pull off the ENU position data
-	 	positionEnu_(0,0) = msg->pose.pose.position.x;
-	 	positionEnu_(1,0) = msg->pose.pose.position.y;
-	 	positionEnu_(2,0) = msg->pose.pose.position.z;
+	 	positionEnu_(0,0) = msg->pose.position.x;
+	 	positionEnu_(1,0) = msg->pose.position.y;
+	 	positionEnu_(2,0) = msg->pose.position.z;
 
         // Rotate into NED frame
         positionNED_ = enuToNed(positionEnu_);
 
         // Pull off the ENU orientation data
-        tf::quaternionMsgToTF(msg->pose.pose.orientation, tf_quat_);
+        tf::quaternionMsgToTF(msg->pose.orientation, tf_quat_);
         tf::Matrix3x3(tf_quat_).getRPY(phi_, theta_, psi_);
         eulerFlu_(0,0) = phi_;
         eulerFlu_(1,0) = theta_;
@@ -64,7 +65,14 @@ namespace mavros_ned
         // quatFrd_ = tf::createQuaternionFromRPY(eulerFrd_(0,0), eulerFrd_(1,0), eulerFrd_(2,0));
         quatFrd_ = tf::createQuaternionMsgFromRollPitchYaw(eulerFrd_(0,0), eulerFrd_(1,0), eulerFrd_(2,0) + 1.5707963);
 
-        // Pull off the RFU linear velocity data
+        // Publish estimate data
+        publishEstimate();
+	 }
+
+
+	 void MavrosNED::odomCallback(const nav_msgs::OdometryConstPtr& msg)
+	 {
+	 	 // Pull off the RFU linear velocity data
 	 	velLinRfu_(0,0) = msg->twist.twist.linear.x;
 	 	velLinRfu_(1,0) = msg->twist.twist.linear.y;
 	 	velLinRfu_(2,0) = msg->twist.twist.linear.z;
@@ -79,9 +87,6 @@ namespace mavros_ned
 
 	 	// Rotate it into the FRD frame
 	 	velAngFrd_ = fluToFrd(velAngFlu_);
-
-        // Publish estimate data
-        publishEstimate();
 	 }
 
 
