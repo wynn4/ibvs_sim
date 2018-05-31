@@ -45,11 +45,12 @@ class StateMachine():
         # Set flag for interfacing with ROScopter or MAVROS
         self.mode_flag = rospy.get_param('~mode', 'mavros')
 
-        # Initialize status flag
+        # Initialize status flags
         self.status_flag = 'RENDEZVOUS'
         self.prev_status = 'MISSION'
         self.status_flag_msg = String()
         self.status_flag_msg.data = self.status_flag
+        self.ibvs_status_flag_msg = String()
 
         # Initialize current target flag
         self.current_target = 'aruco_outer'
@@ -76,6 +77,8 @@ class StateMachine():
 
         self.landing_distance_threshold = rospy.get_param('~landing_distance_threshold', 0.5)
         self.p_des_error_outer_threshold = rospy.get_param('~p_des_error_outer_threshold', 50.0)
+
+        self.test_name = rospy.get_param('~test_name', 'test1')
 
         self.wp_error = 1.0e3
         self.p_des_error_outer = 1.0e3
@@ -211,6 +214,7 @@ class StateMachine():
         self.avg_attitude_pub = rospy.Publisher('/quadcopter/attitude_avg', Point, queue_size=1)
         self.ibvs_active_pub_ = rospy.Publisher('/quadcopter/ibvs_active', Bool, queue_size=1)
         self.status_flag_pub = rospy.Publisher('/status_flag', String, queue_size=1)
+        self.ibvs_status_flag_pub = rospy.Publisher('/ibvs_status_flag', String, queue_size=1)
 
         # Set Up Service Proxy
         self.set_mode_srv = rospy.ServiceProxy('/mavros/set_mode', SetMode)
@@ -310,6 +314,7 @@ class StateMachine():
                 self.status_flag = 'RENDEZVOUS'
                 self.prev_status = 'WIND_CALIBRATION'
                 print "Average roll angle: %f \nAverage pitch angle: %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg))
+                self.write_ave_att_file(self.roll_avg, self.pitch_avg)
 
         
         # HEADING CORRECTION MODE
@@ -359,6 +364,10 @@ class StateMachine():
 
         self.status_flag_msg.data = self.status_flag
         self.status_flag_pub.publish(self.status_flag_msg)
+
+        self.ibvs_status_flag_msg.data = self.current_target
+        self.ibvs_status_flag_pub.publish(self.ibvs_status_flag_msg)
+
 
 
     def enter_ibvs_state_machine(self):
@@ -919,6 +928,24 @@ class StateMachine():
         return np.array([[1. - 2.*yy - 2.*zz, 2.*xy + 2.*wz, 2.*xz - 2.*wy],
                          [2.*xy - 2.*wz, 1. - 2.*xx - 2.*zz, 2.*yz + 2.*wx],
                          [2.*xz + 2.*wy, 2.*yz - 2.*wx, 1. - 2.*xx - 2.*yy]])
+
+
+    def write_ave_att_file(self, roll_ave, pitch_ave):
+
+        if self.mode_flag == 'mavros':
+
+            try:
+                path = '/home/nvidia/' + self.test_name + '_att_ave.txt'
+                text_file = open(path, 'w')
+                text_file.write('Average Roll (deg): %s' % str(np.degrees(roll_ave)))
+                text_file.write('\n')
+                text_file.write('Average Pitch (deg): %s' % str(np.degrees(pitch_ave)))
+                text_file.close()
+            except:
+                print "State Machine: Error saving average attitude file."
+        else:
+            pass
+
 
 
 def main():
