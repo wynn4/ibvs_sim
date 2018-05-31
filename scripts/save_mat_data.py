@@ -27,8 +27,8 @@ class SaveMatData(object):
 
 
         # Giant Arrays For storing Pixel Data
-        self.data_array_outer = np.zeros((50000,32))
-        self.data_array_inner = np.zeros((50000,32))
+        self.data_array_outer = np.zeros((50000,33))
+        self.data_array_inner = np.zeros((50000,33))
 
         self.ibvs_active = False
         self.line_count = 0
@@ -37,6 +37,7 @@ class SaveMatData(object):
         # flag
         self.status_flag = ''
         self.mode = 0.0
+        self.ibvs_mode = 0.0
 
         self.line_count_outer = 0
         self.line_count_inner = 0
@@ -59,6 +60,7 @@ class SaveMatData(object):
         self.ibvs_active_sub = rospy.Subscriber('/quadcopter/ibvs_active', Bool, self.ibvs_active_callback)
         self.state_machine_status_sub = rospy.Subscriber('/status_flag', String, self.status_flag_callback)
         self.save_now_sub = rospy.Subscriber('/save_ibvs_mat_now', Bool, self.save_data_now_callback)
+        self.ibvs_mode_sub = rospy.Subscriber('/ibvs_status_flag', String, self.ibvs_status_flag_callback)
 
 
     def corners_outer_callback(self, msg):
@@ -150,6 +152,7 @@ class SaveMatData(object):
 
             # state_machine mode flag
             self.data_array_outer[self.line_count_outer][31] = self.mode
+            self.data_array_outer[self.line_count_outer][32] = self.ibvs_mode
 
 
         # increment
@@ -250,6 +253,7 @@ class SaveMatData(object):
 
             # state_machine mode flag
             self.data_array_inner[self.line_count_inner][31] = self.mode
+            self.data_array_inner[self.line_count_inner][32] = self.ibvs_mode
 
 
         # increment
@@ -318,6 +322,15 @@ class SaveMatData(object):
             self.mode = 1.0
         else:
             self.mode = 0.0
+
+    def ibvs_status_flag_callback(self, msg):
+
+        if msg.data == 'aruco_outer':
+            self.ibvs_mode = 0.0
+        elif msg.data == 'aruco_inner':
+            self.ibvs_mode = 1.0
+        else:
+            pass
 
 
     def attitude_callback(self, msg):
