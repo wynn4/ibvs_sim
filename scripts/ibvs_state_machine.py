@@ -75,7 +75,7 @@ class StateMachine():
         self.rendezvous_height = rospy.get_param('~rendezvous_height', 10.0)
         self.wp_threshold = rospy.get_param('~wp_threshold', 1.0)
 
-        self.landing_distance_threshold = rospy.get_param('~landing_distance_threshold', 0.5)
+        self.landing_distance_threshold = rospy.get_param('~landing_distance_threshold', 0.4)
         self.p_des_error_outer_threshold = rospy.get_param('~p_des_error_outer_threshold', 50.0)
 
         self.test_name = rospy.get_param('~test_name', 'test1')
