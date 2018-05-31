@@ -147,6 +147,8 @@
         <param name="landing_distance_threshold" value="$(arg landing_distance_threshold)" />
         <param name="p_des_error_outer_threshold" value="$(arg p_des_error_outer_threshold)" />
 
+        <param name="test_name" value="$(arg test_name)" />
+
         <remap from="estimate" to="/mavros_ned/estimate" />
         <remap from="/quadcopter/camera/camera_info" to="/camera_info" />
     </node>
