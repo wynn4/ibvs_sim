@@ -32,6 +32,8 @@ from collections import deque
 # - Bread-crumb trail
 # - Open-loop search for ArUco (maybe)
 
+# Flight Tested May 31 and it works for single and nested marker
+
 
 
 class StateMachine():
