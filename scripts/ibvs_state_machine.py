@@ -45,6 +45,7 @@ class StateMachine():
 
         # Initialize status flag
         self.status_flag = 'RENDEZVOUS'
+        self.prev_status = 'MISSION'
         self.status_flag_msg = String()
         self.status_flag_msg.data = self.status_flag
 
@@ -91,7 +92,7 @@ class StateMachine():
 
         self.wind_calc_completed = False
         self.wind_window_seconds = 5
-        self.wind_calc_duration = 5.0
+        self.wind_calc_duration = 10.0
         self.wind_offset = np.zeros((3,1), dtype=np.float32)
 
         self.heading_correction_completed = False
@@ -242,6 +243,18 @@ class StateMachine():
 
         self.update_wp_error()
 
+        if self.status_flag == 'RENDEZVOUS':
+
+            # Is a target in view?
+            if self.outer_target_is_visible or self.inner_target_is_visible:
+
+                # Were we just in IBVS mode?
+                if self.prev_status == 'IBVS':
+
+                    # Go back into IBVS
+                    self.status_flag = 'IBVS'
+                    self.prev_status = 'RENDEZVOUS'
+
         # RENDEZVOUS MODE
         if self.status_flag == 'RENDEZVOUS':
 
@@ -253,6 +266,7 @@ class StateMachine():
 
                     # Switch to wind calibration status
                     self.status_flag = 'WIND_CALIBRATION'
+                    self.prev_status = 'RENDEZVOUS'
                     self.wind_calc_time = rospy.get_time()
 
 
@@ -260,6 +274,7 @@ class StateMachine():
                     
                     # Perform initial heading correction
                     self.status_flag = 'HEADING_CORRECTION'
+                    self.prev_status = 'RENDEZVOUS'
 
                 else:
 
@@ -268,6 +283,7 @@ class StateMachine():
 
                         # Enter IBVS Mode
                         self.status_flag = 'IBVS'
+                        self.prev_status = 'RENDEZVOUS'
 
                     else:
 
@@ -290,6 +306,7 @@ class StateMachine():
                 self.wp_E = self.target_E + self.wind_offset[1][0]
                 self.wind_calc_completed = True
                 self.status_flag = 'RENDEZVOUS'
+                self.prev_status = 'WIND_CALIBRATION'
                 print "Average roll angle: %f \nAverage pitch angle: %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg))
 
         
@@ -314,6 +331,7 @@ class StateMachine():
                 self.heading_correction_completed = True
             if abs(self.relative_heading) <= np.radians(30.0):
                 self.status_flag = 'RENDEZVOUS'
+                self.prev_status = 'HEADING_CORRECTION'
 
         
         # IMAGE-BASED VISUAL SERVOING MODE
@@ -387,6 +405,7 @@ class StateMachine():
 
                 # Return to mode RENDEZVOUS
                 self.status_flag = 'RENDEZVOUS'
+                self.prev_status = 'IBVS'
 
                 # Maybe should set current_target = 'aruco_outer' here
 
