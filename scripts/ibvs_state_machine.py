@@ -229,7 +229,7 @@ class StateMachine():
         # self.status_update_rate = 5.0
         # self.status_timer = rospy.Timer(rospy.Duration(1.0/self.status_update_rate), self.update_status)
 
-        self.command_update_rate = 30.0
+        self.command_update_rate = 20.0
         self.update_timer = rospy.Timer(rospy.Duration(1.0/self.command_update_rate), self.send_commands)
 
 
