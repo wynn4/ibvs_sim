@@ -43,6 +43,7 @@ axis([0, 30, -400, 400])
 title('Feature $p_u$ Location vs Time', 'Interpreter', 'latex')
 ylabel('$u$ (pixels)', 'Interpreter', 'latex')
 legend({'$p_u$', '$p_u^*$'}, 'Interpreter', 'latex')
+grid on
 
 subplot(2,1,2)
 plot(t,p1_y, t, p1_level_y,'-.')
@@ -51,6 +52,7 @@ title('Feature $p_v$ Location vs Time', 'Interpreter', 'latex')
 ylabel('$v$ (pixels)', 'Interpreter', 'latex')
 legend({'$p_v$', '$p_v^*$'}, 'Interpreter', 'latex')
 xlabel('Time (s)', 'Interpreter', 'latex')
+grid on
 
 % subplot(3,1,3)
 % plot(t,roll, t,pitch)
