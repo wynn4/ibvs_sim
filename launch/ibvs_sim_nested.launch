@@ -16,7 +16,8 @@
 
   <!-- ArUco args -->
   <arg name="show_camera" default="false" />
-  <arg name="show_aruco_detections" default="false" />
+  <arg name="show_aruco_frame" default="true" />
+  <arg name="draw_aruco_data" default="true" />
 
   <!-- Start Simulator -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -97,30 +98,32 @@
   </node>
 
   <!-- IBVS -->
-  <node name="ibvs_outer" pkg="ibvs_sim" type="ibvs.py" output="screen">
+  <node name="ibvs_outer" pkg="ibvs_sim" type="ibvs_adaptive.py" output="screen">
     <remap from="/ibvs/pdes" to="/ibvs/pdes_outer"/>
     <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
     <remap from="/aruco/distance" to="/aruco/distance_outer"/>
+    <remap from="/ibvs/ibvs_error" to="/ibvs/ibvs_error_outer" />
   </node>
 
-  <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs.py" output="screen">
+  <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs_adaptive.py" output="screen">
     <remap from="/ibvs/pdes" to="/ibvs/pdes_inner"/>
     <remap from="/aruco/marker_corners" to="/aruco/marker_corners_inner"/>
     <remap from="/aruco/distance" to="/aruco/distance_inner"/>
     <remap from="/ibvs/vel_cmd" to="/ibvs_inner/vel_cmd"/>
+    <remap from="/ibvs/ibvs_error" to="/ibvs/ibvs_error_inner" />
   </node>
 
   <!-- Level-frame visualizer -->
-  <node pkg="ibvs_sim" type="level_frame_visualizer.py" name="level_frame_visualizer" output="screen" />
+  <!-- <node pkg="ibvs_sim" type="level_frame_visualizer.py" name="level_frame_visualizer" output="screen" /> -->
 
 
   <!-- ..... -->
   <!-- ArUco -->
   <!-- ..... -->
 
-  <!-- ArUco Localization -->
+ <!-- ArUco Localization -->
   <node pkg="aruco_localization" type="aruco_localization" name="aruco" output="screen">
-    <param name="show_output_video" value="$(arg show_aruco_detections)" />
+    <param name="show_output_video" value="$(arg show_aruco_frame)" />
     <param name="markermap_config" value="$(find ibvs_sim)/params/nested148_65.yaml" />
     <!-- <param name="marker_size" value="0.1760" /> -->
     <param name="marker_size" value="0.7071" />
@@ -128,6 +131,7 @@
     <param name="id_outer" value="148" />
     <param name="id_inner" value="65" />
 
+    <param name="draw_data" value="$(arg draw_aruco_data)" />
     <param name="debug_save_input_frames" value="false" />
     <param name="debug_save_output_frames" value="false" />
     <param name="debug_image_path" value="/tmp/arucoimages" />
@@ -137,8 +141,8 @@
   </node>
 
   <!-- Wind Publisher -->
-  <node name="wind_publisher" pkg="ibvs_sim" type="wind.py">
-    <param name="wind_N" value="-15.0" />
+  <node name="wind_publisher" pkg="ibvs_sim" type="wind.py" output="screen">
+    <param name="wind_N" value="-0.0" />
     <param name="wind_E" value="0.0" />
   </node>
 

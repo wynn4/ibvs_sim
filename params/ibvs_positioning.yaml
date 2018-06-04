@@ -1,0 +1,10 @@
+### params for IBVS nodes ###
+### Waypoints ###
+
+p_des_mapper: {
+
+p_des_outer: [-150, -150, 150, -150, 150, 150, -150, 150],
+
+p_des_inner: [-70, -70, 70, -70, 70, 70, -70, 70]
+
+}

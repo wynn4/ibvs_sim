@@ -43,6 +43,7 @@ xlabel('$x$', 'Interpreter', 'latex')
 ylabel('$y$', 'Interpreter', 'latex')
 zlabel('$z$', 'Interpreter', 'latex')
 view(45,40)
+grid on
 
 subplot(1,2,2)
 h1 = plot(x_pix, y_pix, 'r*');
@@ -55,6 +56,7 @@ legend({'$p$', '$p^*$'}, 'Interpreter', 'latex')
 axis ij
 axis equal
 axis([-width/2, width/2, -height/2, height/2])
+grid on
 
 % pause;
 
