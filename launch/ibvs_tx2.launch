@@ -13,13 +13,13 @@
     <arg name="te" />
 
     <!-- State Machine args -->
-    <arg name="u_max_outer" value="0.2" />
-    <arg name="v_max_outer" value="0.2" />
-    <arg name="w_max_outer" value="0.4" />
+    <arg name="u_max_outer" value="0.5" />
+    <arg name="v_max_outer" value="0.5" />
+    <arg name="w_max_outer" value="0.7" />
 
     <arg name="u_max_inner" value="0.2" />
     <arg name="v_max_inner" value="0.2" />
-    <arg name="w_max_inner" value="0.4" />
+    <arg name="w_max_inner" value="0.2" />
 
     <arg name="rendezvous_height" value="15.0" />
     <arg name="wp_threshold" value="1.0" />
@@ -82,7 +82,7 @@
     <!-- IBVS Control -->
     <!--  -->
 
-    <rosparam command="load" file="$(find ibvs_sim)/params/ibvs.yaml"/>
+    <rosparam command="load" file="$(find ibvs_sim)/params/ibvs_positioning.yaml"/>
 
     <!-- p_des Publisher -->
     <node name="p_des_mapper" pkg="ibvs_sim" type="p_des_mapper.py" output="screen">
