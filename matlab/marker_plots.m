@@ -18,6 +18,7 @@ xlabel('Distance (m)', 'Interpreter', 'latex')
 ylabel('Detection Rate (Hz)', 'Interpreter', 'latex')
 legend({'Outer Marker', 'Inner Marker'}, 'Interpreter', 'latex')
 axis([0, 20, -1, 35])
+grid on
 
 figure(2), clf
 plot(dist, outer_rate, 'o-', dist, inner_rate, 's-')
@@ -25,5 +26,15 @@ title('Marker Detection Rate vs Distance from Marker', 'Interpreter', 'latex')
 xlabel('Distance (m)', 'Interpreter', 'latex')
 ylabel('Detection Rate (Hz)', 'Interpreter', 'latex')
 legend({'Outer Marker', 'Inner Marker'}, 'Interpreter', 'latex')
-axis([0, 5, -1, 35])
+axis([0, 4, -1, 35])
+grid on
+
+% figure(3), clf
+% plot(dist, outer_rate, 'o-', dist, inner_rate, 's-')
+% title('Marker Detection Rate vs Distance from Marker', 'Interpreter', 'latex')
+% xlabel('Distance (m)', 'Interpreter', 'latex')
+% ylabel('Detection Rate (Hz)', 'Interpreter', 'latex')
+% legend({'Outer Marker', 'Inner Marker'}, 'Interpreter', 'latex')
+% axis([0, 1, -1, 35])
+% grid on
 
