@@ -27,6 +27,7 @@ class ImageBasedVisualServoing(object):
     def __init__(self):
 
         # load ROS params
+        self.adaptive = rospy.get_param('~adaptive', True)
         lambda_vx = rospy.get_param('~lambda_vx', 0.5)
         lambda_vy = rospy.get_param('~lambda_vy', 0.5)
         lambda_vz = rospy.get_param('~lambda_vz', 0.7)
@@ -138,8 +139,11 @@ class ImageBasedVisualServoing(object):
         u_centroid = (u1 + u2 + u3 + u4) / 4.0
         v_centroid = (v1 + v2 + v3 + v4) / 4.0
 
-        # Compute distance between the centroid, and the centroid of p_des and get appropriate IBVS flag
-        self.mode_flag = self.set_ibvs_mode(u_centroid, v_centroid)
+        if self.adaptive:
+            # Compute distance between the centroid, and the centroid of p_des and get appropriate IBVS flag
+            self.mode_flag = self.set_ibvs_mode(u_centroid, v_centroid)
+        else:
+            self.mode_flag = 'IBVS_4DOF'
         # print self.mode_flag
 
         # t = time.time()

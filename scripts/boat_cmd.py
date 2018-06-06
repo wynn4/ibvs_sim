@@ -16,9 +16,14 @@ class move:
         self.boat_pub = rospy.Publisher('boat_command', Pose, queue_size=1)
         #self.joy_sub = rospy.Subscriber('/joy_throttled', Joy, self.joy_callback, queue_size=1) # toggle in yaml file
 
+        self.translate = rospy.get_param('~xy_translation', False)
+
         self.cmd = Pose()
-        self.cmd.position.x = rospy.get_param('~x_pos_cmd', 0.0)  # desired x position
-        self.cmd.position.y = rospy.get_param('~y_pos_cmd', 0.0)  # desired y position
+        self.position_x = rospy.get_param('~x_pos_cmd', 0.0)  # desired x position
+        self.position_y = rospy.get_param('~y_pos_cmd', 0.0)  # desired y position
+        self.max_attitude_angle = rospy.get_param('~max_roll_pitch', 10.0)
+        self.cmd.position.x = 0.0
+        self.cmd.position.y = 0.0
         self.cmd.position.z = 0.0  # desired z altitude
         self.cmd.orientation.x = 0.0  # desired roll angle
         self.cmd.orientation.y = 0.0  # desired pitch angle
@@ -26,7 +31,7 @@ class move:
         # Will go unused, for now (not using quaternion notation)
         self.cmd.orientation.w = 0.0
 
-        self.max_angle = 25.0 * math.pi / 180.0
+        self.max_angle = self.max_attitude_angle * math.pi / 180.0
 
         self.update_rate = 10.0
         self.update_timer_ = rospy.Timer(
@@ -84,6 +89,13 @@ class move:
     def update(self, event):
         self.current_time = rospy.get_time()
         time = self.current_time - self.start_time
+
+        if self.translate:
+            self.cmd.position.x = self.position_x + 0.5 * math.sin(0.2 * time)
+            self.cmd.position.y = self.position_y + 0.5 * math.sin(0.2 * time)
+        else:
+            self.cmd.position.x = self.position_x
+            self.cmd.position.y = self.position_y
 
         self.cmd.position.z = 0.5 * math.sin(0.2 * time)
         self.cmd.orientation.x = self.max_angle * math.sin(0.5 * time)

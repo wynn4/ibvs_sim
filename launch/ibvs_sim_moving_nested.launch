@@ -101,6 +101,10 @@
 
     <!-- Boat controller-->
     <node pkg="ibvs_sim" name="boat_command" type="boat_cmd.py">
+      <!-- max roll/pitch angle (degrees) -->
+      <param name="max_roll_pitch" value="15.0"/>
+
+      <param name="xy_translation" value="true"/>
       <param name="x_pos_cmd" value="$(arg x2)"/>
       <param name="y_pos_cmd" value="$(arg y2)"/>
     </node>
@@ -128,6 +132,7 @@
   </node>
 
   <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs_adaptive.py" output="screen">
+    <param name="adaptive" value="false"/>
     <remap from="/ibvs/pdes" to="/ibvs/pdes_inner"/>
     <remap from="/aruco/marker_corners" to="/aruco/marker_corners_inner"/>
     <remap from="/aruco/distance" to="/aruco/distance_inner"/>
