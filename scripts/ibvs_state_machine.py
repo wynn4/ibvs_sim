@@ -841,6 +841,7 @@ class StateMachine():
 
         # The ArUco frame is out of alignment with the camera frame by 180 degrees
         angle = np.pi - angle
+        # print(np.degrees(angle))
 
         if angle <= self.max_boat_angle:
             self.safe_to_land = True

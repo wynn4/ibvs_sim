@@ -28,6 +28,7 @@ class ImageBasedVisualServoing(object):
 
         # load ROS params
         self.adaptive = rospy.get_param('~adaptive', True)
+        self.square_root_dist = rospy.get_param('~square_root_dist', False)
         lambda_vx = rospy.get_param('~lambda_vx', 0.5)
         lambda_vy = rospy.get_param('~lambda_vy', 0.5)
         lambda_vz = rospy.get_param('~lambda_vz', 0.7)
@@ -350,23 +351,23 @@ class ImageBasedVisualServoing(object):
 
     def aruco_distance_callback(self, msg):
 
-        # check for NaNs coming from ArUco distance
-        if np.isnan(msg.data):
-            # print "Nan!"
-            z_c = self.altitude
+        # # check for NaNs coming from ArUco distance
+        # if np.isnan(msg.data):
+        #     # print "Nan!"
+        #     z_c = self.altitude
 
-            if z_c >= 3.0 and self.inverse_method == False:
-                self.z_c = 3.0
-            else:
-               self.z_c = z_c
+        #     if z_c >= 3.0 and self.inverse_method == False:
+        #         self.z_c = 3.0
+        #     else:
+        #        self.z_c = z_c
 
-            return
+        #     return
 
         # all we need is distance to the ArUco, z_c
         z_c = msg.data
 
-        if z_c >= 3.0 and self.inverse_method == False:
-            self.z_c = 3.0
+        if self.square_root_dist:
+            self.z_c = np.sqrt(z_c)
         else:
             self.z_c = z_c
 

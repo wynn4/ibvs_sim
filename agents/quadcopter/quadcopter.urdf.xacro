@@ -14,7 +14,7 @@ Author: James Jackson
   <xacro:property name="use_mesh_file" value="true" />
   <xacro:property name="mesh_file" value="$(find magicc_sim)/meshes/firefly.dae" />
   <xacro:property name="mass" value="2.856" />
-  <xacro:property name="body_width" value="0.505" />
+  <xacro:property name="body_width" value="0.28" />
   <xacro:property name="body_height" value="0.001" />
   <xacro:property name="body_inertia">
     <inertia ixx="0.07" ixy="0.0" ixz="0.0" iyy="0.08" iyz="0.0" izz="0.12" />

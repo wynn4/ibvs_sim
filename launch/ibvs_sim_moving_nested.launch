@@ -83,6 +83,9 @@
       <!-- <remap from="estimate" to="estimate"/> -->
 
       <param name="wp_threshold" value="0.5" />
+      <param name="u_max_inner" value="0.5" />
+      <param name="v_max_inner" value="0.5" />
+      <param name="w_max_inner" value="0.3" />
 
       <remap from="/target_position" to="/boat/odometry/NED"/>
     </node>
@@ -102,7 +105,7 @@
     <!-- Boat controller-->
     <node pkg="ibvs_sim" name="boat_command" type="boat_cmd.py">
       <!-- max roll/pitch angle (degrees) -->
-      <param name="max_roll_pitch" value="15.0"/>
+      <param name="max_roll_pitch" value="25.0"/>
 
       <param name="xy_translation" value="true"/>
       <param name="x_pos_cmd" value="$(arg x2)"/>
@@ -125,6 +128,12 @@
 
   <!-- IBVS -->
   <node name="ibvs_outer" pkg="ibvs_sim" type="ibvs_adaptive.py" output="screen">
+    <param name="square_root_dist" value="False"/>
+
+    <param name="lambda_vx" value="0.75"/>
+    <param name="lambda_vy" value="0.75"/>
+    <param name="lambda_vz" value="1.0"/>
+
     <remap from="/ibvs/pdes" to="/ibvs/pdes_outer"/>
     <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
     <remap from="/aruco/distance" to="/aruco/distance_outer"/>
@@ -133,6 +142,13 @@
 
   <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs_adaptive.py" output="screen">
     <param name="adaptive" value="false"/>
+    <param name="square_root_dist" value="True"/>
+
+    <param name="lambda_vx" value="0.75"/>
+    <param name="lambda_vy" value="0.75"/>
+    <param name="lambda_vz" value="1.0"/>
+
+
     <remap from="/ibvs/pdes" to="/ibvs/pdes_inner"/>
     <remap from="/aruco/marker_corners" to="/aruco/marker_corners_inner"/>
     <remap from="/aruco/distance" to="/aruco/distance_inner"/>
