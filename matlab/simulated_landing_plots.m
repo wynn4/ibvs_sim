@@ -57,7 +57,7 @@ e4 = data(:,5);
 
 figure(1), clf
 plot(t,e1, t,e2, t,e3, t,e4)
-axis([12, 45, 0, 275])
+axis([12.39, 50, 0, 275])
 hold on
 title('Pixel Error $(\mathbf{p}_{des} - \mathbf{p}^{*})$ vs Time During IBVS Landing', 'Interpreter', 'latex')
 xlabel('Time (s)', 'Interpreter', 'latex')
@@ -72,19 +72,19 @@ pn = mdata(:,2);
 pe = mdata(:,3);
 pd = mdata(:,4);
 
-t_land = 39.7;
+t_land = 43.3;
 
 % position plot
 figure(2), clf
 subplot(3,1,1)
 plot(t, pn)
 hold on
-plot([0; 45], [9; 9], '--')
+plot([0; 50], [9; 9], '--')
 plot([t_ibvs; t_ibvs], [0; 10], '-.k')
 plot([t_land; t_land], [0; 10], ':k')
 title('Multirotor and ArUco Position vs Time During IBVS Landing', 'Interpreter', 'latex')
 legend({'Multirotor', 'ArUco Marker', 'IBVS Active', 'Landing'}, 'Interpreter', 'latex', 'Location','SouthEast')
-axis([0 45 0 10])
+axis([0 50 0 10])
 ylabel('$P_n$ (m)', 'Interpreter', 'latex')
 grid on
 
@@ -94,7 +94,7 @@ hold on
 plot([0; 45], [9; 9], '--')
 plot([t_ibvs; t_ibvs], [0; 10], '--k')
 plot([t_land; t_land], [0; 10], ':k')
-axis([0 45 0 10])
+axis([0 50 0 10])
 ylabel('$P_e$ (m)', 'Interpreter', 'latex')
 grid on
 
@@ -102,9 +102,9 @@ subplot(3,1,3)
 plot(t, pd)
 hold on
 plot([0; 45], [0; 0], '--')
-plot([t_ibvs; t_ibvs], [-11; 1], '--k')
-plot([t_land; t_land], [-11; 1], ':k')
-axis([0 45 -11 1])
+plot([t_ibvs; t_ibvs], [-15; 1], '--k')
+plot([t_land; t_land], [-15; 1], ':k')
+axis([0 50 -15 1])
 ylabel('$P_d$ (m)', 'Interpreter', 'latex')
 xlabel('Time (s)', 'Interpreter', 'latex')
 grid on
