@@ -3,8 +3,8 @@ clear
 close all
 
 % Load mat files
-data_outer = load('outer_data_nested_sim.mat');
-data_inner = load('inner_data_nested_sim.mat');
+data_outer = load('outer_data_truth_landing_sim.mat');
+data_inner = load('inner_data_truth_landing_sim.mat');
 
 % Trim off all of the data before and after IBVS mode was active
 ar = data_outer.arr(:,32);
