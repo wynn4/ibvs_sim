@@ -77,11 +77,15 @@ class StateMachine():
 
         self.landing_distance_threshold = rospy.get_param('~landing_distance_threshold', 0.4)
         self.p_des_error_outer_threshold = rospy.get_param('~p_des_error_outer_threshold', 50.0)
+        self.p_des_error_inner_threshold = rospy.get_param('~p_des_error_inner_threshold', 50.0)
+
+        self.inner_error_condition = rospy.get_param('~inner_error_condition', False)
 
         self.test_name = rospy.get_param('~test_name', 'test1')
 
         self.wp_error = 1.0e3
         self.p_des_error_outer = 1.0e3
+        self.p_des_error_inner = 1.0e3
 
         # initialize target location
         self.target_N = 0.0
@@ -207,6 +211,7 @@ class StateMachine():
         self.aruco_heading_sub = rospy.Subscriber('/aruco/heading_outer', Float32, self.aruco_relative_heading_callback)
         self.state_sub = rospy.Subscriber('estimate', Odometry, self.state_callback)
         self.ibvs_ave_error_sub = rospy.Subscriber('/ibvs/ibvs_error_outer', Float32, self.ibvs_ave_error_callback)
+        self.ibvs_ave_error_inner_sub = rospy.Subscriber('/ibvs/ibvs_error_inner', Float32, self.ibvs_ave_error_inner_callback)
 
 
         self.command_pub_roscopter = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
@@ -818,6 +823,9 @@ class StateMachine():
 
         self.p_des_error_outer = msg.data
 
+    def ibvs_ave_error_inner_callback(self, msg):
+        self.p_des_error_inner = msg.data
+
 
     def aruco_inner_distance_callback(self, msg):
 
@@ -843,11 +851,16 @@ class StateMachine():
         angle = np.pi - angle
         # print(np.degrees(angle))
 
-        if angle <= self.max_boat_angle:
-            self.safe_to_land = True
+        if self.inner_error_condition:
+            if angle <= self.max_boat_angle and self.p_des_error_inner <= self.p_des_error_inner_threshold:
+                self.safe_to_land = True
+            else:
+                self.safe_to_land = False
         else:
-            self.safe_to_land = False
-
+            if angle <= self.max_boat_angle:
+                self.safe_to_land = True
+            else:
+                self.safe_to_land = False
 
 
     def target_callback(self, msg):
