@@ -84,6 +84,8 @@
       <param name="v_max_inner" value="0.5" />
       <param name="w_max_inner" value="0.3" />
 
+      <param name="inner_error_condition" value="True" />
+
       <remap from="estimate" to="ground_truth/odometry/NED"/>
       <!-- <remap from="estimate" to="estimate"/> -->
 
