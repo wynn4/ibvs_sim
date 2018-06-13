@@ -611,8 +611,8 @@ class StateMachine():
                 ibvs_command_msg.coordinate_frame = ibvs_command_msg.FRAME_BODY_NED
                 ibvs_command_msg.type_mask = self.velocity_mask
 
-                ibvs_command_msg.velocity.x = self.saturate(self.ibvs_x, self.u_max, -self.u_max)
-                ibvs_command_msg.velocity.y = self.saturate(self.ibvs_y, self.v_max, -self.v_max)
+                ibvs_command_msg.velocity.x = self.saturate(self.ibvs_x, self.u_max, -self.u_max) + self.target_VE*np.cos(self.psi) - self.target_VN*np.sin(self.psi)
+                ibvs_command_msg.velocity.y = self.saturate(self.ibvs_y, self.v_max, -self.v_max) + self.target_VN*np.cos(self.psi) + self.target_VE*np.sin(self.psi)
                 ibvs_command_msg.velocity.z = self.saturate(self.ibvs_F, self.w_max, -self.w_max)
 
                 ibvs_command_msg.yaw_rate = self.ibvs_z
