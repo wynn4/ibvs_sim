@@ -11,6 +11,11 @@ import numpy as np
 import tf
 import time
 
+## TODO:
+#       - Move propagate step into the target callback since velocity doesn't change during propagate steps
+#       - Tune Q and R
+#       - Don't start the filter until we're at the RENDEZVOUS point
+
 
 class TargetEKF(object):
 
@@ -81,10 +86,10 @@ class TargetEKF(object):
         self.P = np.diag([1.e10, 1.e10, 1.e10, 1.e10])
 
         # Model Uncertainty
-        self.Q = np.diag([1.e1, 1.e1, 1.e1])
+        self.Q = np.diag([1.e0, 1.e0, 1.e0])
 
         # Gamma(T)
-        self.Gamma = np.zeros((4,4), dtype=np.float32)
+        self.Gamma = np.zeros((4,3), dtype=np.float32)
         
         # Kalman gain.
         self.K = np.zeros((4,2), dtype=np.float32)
@@ -92,6 +97,14 @@ class TargetEKF(object):
         # Measurement Jacobian
         self.H = np.array([[1, 0, 0, 0],
                            [0, 1, 0, 0]], dtype=np.float32)
+
+        # Measurement Uncertainty
+        self.R = np.diag([1.0, 1.0])
+
+        # Identity
+        self.I = np.eye(4, dtype=np.float32)
+
+        self.first_time = True
 
 
         # Subscribe to the ArUco's pose in the camera frame
@@ -106,7 +119,15 @@ class TargetEKF(object):
 
     def send_estimate(self, event):
 
-        # Predict Step
+        # Propagate
+        now = rospy.get_time()
+        self.propagate(now)
+
+        print "Target North: %f" % self.x_hat[0][0]
+        print "Target East: %f" % self.x_hat[1][0]
+        print "Target VN: %f" % self.x_hat[2][0]
+        print "Target VE: %f" % self.x_hat[3][0]
+        print "\n"
 
     
     def target_callback(self, msg):
@@ -126,6 +147,32 @@ class TargetEKF(object):
 
         # Run a measurement update step on our EKF
         self.update_step()
+
+
+    def propagate(self, t):
+
+        if not self.first_time:
+            dt = t - self.t_prev
+        else:
+            dt = 1.0/self.estimate_rate
+            self.first_time = False
+
+        # Update elements of F and Gamma
+        self.F[0][2] = dt
+        self.F[1][3] = dt
+
+        self.Gamma[0][0] = (dt**2.0)/2.0
+        self.Gamma[1][1] = (dt**2.0)/2.0
+        self.Gamma[2][0] = dt
+        self.Gamma[3][1] = dt
+
+        # Propagate our state.
+        self.x_hat = np.dot(self.F, self.x_hat)
+
+        # Propagate our covariance
+        self.P = np.dot(self.F, np.dot(self.P, self.F.T)) + np.dot(self.Gamma, np.dot(self.Q, self.Gamma.T))
+
+        self.t_prev = t
 
 
     def transform_c_to_i(self):
