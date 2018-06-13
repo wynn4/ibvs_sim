@@ -4,6 +4,7 @@
 import rospy
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import Joy
+import numpy as np
 import math
 
 LINEAR_MULTIPLIER = 2.0
@@ -27,7 +28,7 @@ class move:
         self.cmd.position.z = 0.0  # desired z altitude
         self.cmd.orientation.x = 0.0  # desired roll angle
         self.cmd.orientation.y = 0.0  # desired pitch angle
-        self.cmd.orientation.z = 0.0  # desired yaw angle
+        self.cmd.orientation.z = np.radians(-45.0)  # desired yaw angle
         # Will go unused, for now (not using quaternion notation)
         self.cmd.orientation.w = 0.0
 
@@ -94,9 +95,10 @@ class move:
         #     self.cmd.position.x = self.position_x + 0.5 * math.sin(0.2 * time)
         #     self.cmd.position.y = self.position_y + 0.5 * math.sin(0.2 * time)
         if self.translate:
-            self.position_x = self.position_x + 0.1235
+            self.position_x = self.position_x + 0.707 * 0.1235
+            self.position_y = self.position_y - 0.707 * 0.1235
             self.cmd.position.x = self.position_x
-            self.cmd.position.y = self.position_y + 0.0
+            self.cmd.position.y = self.position_y
         else:
             self.cmd.position.x = self.position_x
             self.cmd.position.y = self.position_y

@@ -1,6 +1,11 @@
 #! /usr/bin/env python
 
 ## Target Velocity EKF
+## Implementation of the EKF given in Mingfeng "Vision-Based Tracking and Estimation of Ground Moving Target Using
+## Unmanned Aerial Vehicle". Modifications include changing the state vector to x_hat = [x, y, x_dot, y_dot].T and
+## the measurement model has been changed to say that we actually measure the NE position of the target (In this
+## case an ArUco marker)
+
 ## JSW June 2018
 
 import rospy
@@ -14,6 +19,7 @@ import time
 
 ## TODO:
 #       - Move propagate step into the target callback since velocity doesn't change during propagate steps -- Done
+#       - Create a low-pass filtered output stream -- Done
 #       - Tune Q and R
 #       - Don't start the filter until we're at the RENDEZVOUS point
 
@@ -105,13 +111,22 @@ class TargetEKF(object):
         # Identity
         self.I = np.eye(4, dtype=np.float32)
 
+        ## Low pass filter params
+        self.a = 5.0
+        self.alpha = 0.7
+        self.VN_lpf = 0.0
+        self.VE_lpf = 0.0
+
         self.first_time = True
         self.t_prev = 0.0
+        self.dt = 0.0
 
         self.velocity_msg = Point32()
+        self.velocity_lpf_msg = Point32()
 
         # Publisher for Estimate data
         self.velocity_estimate_pub = rospy.Publisher('/target_ekf/velocity', Point32, queue_size=1)
+        self.velocity_lpf_estimate_pub = rospy.Publisher('/target_ekf/velocity_lpf', Point32, queue_size=1)
 
         # Subscribe to the ArUco's pose in the camera frame
         self.target_sub = rospy.Subscriber('/aruco/estimate', PoseStamped, self.target_callback)
@@ -168,7 +183,7 @@ class TargetEKF(object):
     def propagate(self, t):
 
         if not self.first_time:
-            dt = t - self.t_prev
+            self.dt = t - self.t_prev
         else:
             # dt = 1.0/self.estimate_rate
             self.first_time = False
@@ -176,13 +191,13 @@ class TargetEKF(object):
             return
 
         # Update elements of F and Gamma
-        self.F[0][2] = dt
-        self.F[1][3] = dt
+        self.F[0][2] = self.dt
+        self.F[1][3] = self.dt
 
-        self.Gamma[0][0] = (dt**2.0)/2.0
-        self.Gamma[1][1] = (dt**2.0)/2.0
-        self.Gamma[2][0] = dt
-        self.Gamma[3][1] = dt
+        self.Gamma[0][0] = (self.dt**2.0)/2.0
+        self.Gamma[1][1] = (self.dt**2.0)/2.0
+        self.Gamma[2][0] = self.dt
+        self.Gamma[3][1] = self.dt
 
         # Propagate our state.
         self.x_hat = np.dot(self.F, self.x_hat)
@@ -243,12 +258,24 @@ class TargetEKF(object):
 
     def publish_estimate(self):
 
-        # Fill out the message.
+        # Fill out the raw estimate message.
         self.velocity_msg.x = self.x_hat[2][0]
         self.velocity_msg.y = self.x_hat[3][0]
 
+        # Low pass filter like in Small Unmanned Aircraft T&P 8.2
+        self.alpha = np.exp(-self.a * self.dt)
+        self.VN_lpf = self.alpha*self.VN_lpf + (1.0 - self.alpha)*self.x_hat[2][0]
+        self.VE_lpf = self.alpha*self.VE_lpf + (1.0 - self.alpha)*self.x_hat[3][0]
+
+        # Fill out the low-pass filtered estimate message.
+        self.velocity_lpf_msg.x = self.VN_lpf
+        self.velocity_lpf_msg.y = self.VE_lpf
+
+
+
         # Publish.
         self.velocity_estimate_pub.publish(self.velocity_msg)
+        self.velocity_lpf_estimate_pub.publish(self.velocity_lpf_msg)
 
 
     def euler_callback(self, msg):

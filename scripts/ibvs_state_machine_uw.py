@@ -215,7 +215,7 @@ class StateMachine():
         self.state_sub = rospy.Subscriber('estimate', Odometry, self.state_callback)
         self.ibvs_ave_error_sub = rospy.Subscriber('/ibvs/ibvs_error_outer', Float32, self.ibvs_ave_error_callback)
         self.ibvs_ave_error_inner_sub = rospy.Subscriber('/ibvs/ibvs_error_inner', Float32, self.ibvs_ave_error_inner_callback)
-        self.target_velocity_sub = rospy.Subscriber('/target_ekf/velocity', Point32, self.target_velocity_callback)
+        self.target_velocity_sub = rospy.Subscriber('/target_ekf/velocity_lpf', Point32, self.target_velocity_callback)
 
 
         self.command_pub_roscopter = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
@@ -627,8 +627,8 @@ class StateMachine():
             if flag == 'inner':
 
                 ibvs_command_msg = Command()
-                ibvs_command_msg.x = self.saturate(self.ibvs_x_inner, self.u_max_inner, -self.u_max_inner) + self.target_VN
-                ibvs_command_msg.y = self.saturate(self.ibvs_y_inner, self.v_max_inner, -self.v_max_inner) + self.target_VE
+                ibvs_command_msg.x = self.saturate(self.ibvs_x_inner, self.u_max_inner, -self.u_max_inner) + self.target_VN*np.cos(self.psi) + self.target_VE*np.sin(self.psi)
+                ibvs_command_msg.y = self.saturate(self.ibvs_y_inner, self.v_max_inner, -self.v_max_inner) + self.target_VE*np.cos(self.psi) - self.target_VN*np.sin(self.psi)
                 ibvs_command_msg.F = self.saturate(self.ibvs_F_inner, self.w_max_inner, -self.w_max_inner)
                 ibvs_command_msg.z = self.ibvs_z_inner
                 ibvs_command_msg.mode = Command.MODE_XVEL_YVEL_YAWRATE_ALTITUDE
@@ -637,8 +637,8 @@ class StateMachine():
             elif flag == 'outer':
 
                 ibvs_command_msg = Command()
-                ibvs_command_msg.x = self.saturate(self.ibvs_x, self.u_max, -self.u_max) + self.target_VN
-                ibvs_command_msg.y = self.saturate(self.ibvs_y, self.v_max, -self.v_max) + self.target_VE
+                ibvs_command_msg.x = self.saturate(self.ibvs_x, self.u_max, -self.u_max) + self.target_VN*np.cos(self.psi) + self.target_VE*np.sin(self.psi)
+                ibvs_command_msg.y = self.saturate(self.ibvs_y, self.v_max, -self.v_max) + self.target_VE*np.cos(self.psi) - self.target_VN*np.sin(self.psi)
                 ibvs_command_msg.F = self.saturate(self.ibvs_F, self.w_max, -self.w_max)
                 ibvs_command_msg.z = self.ibvs_z
                 ibvs_command_msg.mode = Command.MODE_XVEL_YVEL_YAWRATE_ALTITUDE
