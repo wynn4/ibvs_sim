@@ -7,12 +7,13 @@ import rospy
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Vector3Stamped
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Point32
 import numpy as np
 import tf
 import time
 
 ## TODO:
-#       - Move propagate step into the target callback since velocity doesn't change during propagate steps
+#       - Move propagate step into the target callback since velocity doesn't change during propagate steps -- Done
 #       - Tune Q and R
 #       - Don't start the filter until we're at the RENDEZVOUS point
 
@@ -105,7 +106,12 @@ class TargetEKF(object):
         self.I = np.eye(4, dtype=np.float32)
 
         self.first_time = True
+        self.t_prev = 0.0
 
+        self.velocity_msg = Point32()
+
+        # Publisher for Estimate data
+        self.velocity_estimate_pub = rospy.Publisher('/target_ekf/velocity', Point32, queue_size=1)
 
         # Subscribe to the ArUco's pose in the camera frame
         self.target_sub = rospy.Subscriber('/aruco/estimate', PoseStamped, self.target_callback)
@@ -113,40 +119,50 @@ class TargetEKF(object):
         self.euler_sub = rospy.Subscriber('/quadcopter/euler', Vector3Stamped, self.euler_callback)
         self.position_sub = rospy.Subscriber('/quadcopter/ground_truth/odometry/NED', Odometry, self.position_callback)
 
-        self.estimate_rate = 50.0
-        self.estimate_timer = rospy.Timer(rospy.Duration(1.0/self.estimate_rate), self.send_estimate)
+        # self.estimate_rate = 50.0
+        # self.estimate_timer = rospy.Timer(rospy.Duration(1.0/self.estimate_rate), self.send_estimate)
 
 
-    def send_estimate(self, event):
+    # def send_estimate(self, event):
 
-        # Propagate
-        now = rospy.get_time()
-        self.propagate(now)
+    #     # Propagate
+    #     now = rospy.get_time()
+    #     self.propagate(now)
 
-        print "Target North: %f" % self.x_hat[0][0]
-        print "Target East: %f" % self.x_hat[1][0]
-        print "Target VN: %f" % self.x_hat[2][0]
-        print "Target VE: %f" % self.x_hat[3][0]
-        print "\n"
+    #     print "Target North: %f" % self.x_hat[0][0]
+    #     print "Target East: %f" % self.x_hat[1][0]
+    #     print "Target VN: %f" % self.x_hat[2][0]
+    #     print "Target VE: %f" % self.x_hat[3][0]
+    #     print "\n"
 
     
     def target_callback(self, msg):
 
-        # Grab the ArUco's position in the camera frame
+        # Get the time.
+        now = rospy.get_time()
+
+        # Grab the ArUco's position in the camera frame.
         self.Z_c[0][0] = msg.pose.position.x
         self.Z_c[1][0] = msg.pose.position.y
         self.Z_c[2][0] = msg.pose.position.z
 
-        # Transform the ArUco's position to be expressed in the inertial frame
+        # Transform the ArUco's position to be expressed in the inertial frame.
         self.transform_c_to_i()
 
-        # print "Target North: %f" % self.Z_i[0][0]
-        # print "Target East: %f" % self.Z_i[1][0]
-        # print "Target Down: %f" % self.Z_i[2][0]
-        # print "\n"
+        # Propagate.
+        self.propagate(now)
 
-        # Run a measurement update step on our EKF
+        # Run a measurement update step on our EKF.
         self.update_step()
+
+        # Publish.
+        self.publish_estimate()
+
+        # print "Target North: %f" % self.x_hat[0][0]
+        # print "Target East: %f" % self.x_hat[1][0]
+        # print "Target VN: %f" % self.x_hat[2][0]
+        # print "Target VE: %f" % self.x_hat[3][0]
+        # print "\n"
 
 
     def propagate(self, t):
@@ -154,8 +170,10 @@ class TargetEKF(object):
         if not self.first_time:
             dt = t - self.t_prev
         else:
-            dt = 1.0/self.estimate_rate
+            # dt = 1.0/self.estimate_rate
             self.first_time = False
+            self.t_prev = rospy.get_time()
+            return
 
         # Update elements of F and Gamma
         self.F[0][2] = dt
@@ -221,6 +239,16 @@ class TargetEKF(object):
 
         # Update covariance.
         self.P = np.dot((self.I - np.dot(self.K, self.H)), self.P)
+
+
+    def publish_estimate(self):
+
+        # Fill out the message.
+        self.velocity_msg.x = self.x_hat[2][0]
+        self.velocity_msg.y = self.x_hat[3][0]
+
+        # Publish.
+        self.velocity_estimate_pub.publish(self.velocity_msg)
 
 
     def euler_callback(self, msg):

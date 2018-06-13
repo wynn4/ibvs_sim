@@ -54,7 +54,7 @@
   <group ns="$(arg quadcopter_name)">
 
     <!-- Load common parameters -->
-    <rosparam command="load" file="$(find ibvs_sim)/params/$(arg quadcopter_name).yaml"/>
+    <rosparam command="load" file="$(find ibvs_sim)/params/quadcopter_under_way.yaml"/>
 
     <!-- Is Flying Publisher -->
     <node pkg="rostopic" type="rostopic" name="is_flying_pub" args="pub is_flying std_msgs/Bool true"/>
@@ -105,9 +105,9 @@
     <rosparam command="load" file="$(find ibvs_sim)/agents/boat/boat_jesse.yaml"/>
 
     <!-- Boat controller-->
-    <node pkg="ibvs_sim" name="boat_command" type="boat_cmd.py">
+    <node pkg="ibvs_sim" name="boat_command" type="boat_cmd_under_way.py">
       <!-- max roll/pitch angle (degrees) -->
-      <param name="max_roll_pitch" value="25.0"/>
+      <param name="max_roll_pitch" value="15.0"/>
 
       <param name="xy_translation" value="true"/>
       <param name="x_pos_cmd" value="$(arg x2)"/>
@@ -160,6 +160,10 @@
 
   <!-- Level-frame visualizer -->
   <!-- <node pkg="ibvs_sim" type="level_frame_visualizer.py" name="level_frame_visualizer" output="screen" /> -->
+
+  <!-- Target EKF -->
+  <node name="target_ekf" pkg="ibvs_sim" type="target_ekf.py" output="screen">
+  </node>
 
 
   <!-- ..... -->
