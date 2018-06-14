@@ -165,6 +165,10 @@
   <node name="target_ekf" pkg="ibvs_sim" type="target_ekf.py" output="screen">
   </node>
 
+  <!-- Boat NE velocity publisher -->
+  <node name="boat_vel_pub" pkg="ibvs_sim" type="boat_velocity_pub.py" output="screen">
+  </node>
+
 
   <!-- ..... -->
   <!-- ArUco -->

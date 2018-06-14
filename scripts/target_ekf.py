@@ -80,6 +80,9 @@ class TargetEKF(object):
         self.Z_c = np.array([0, 0, 0, 1], dtype=np.float32).reshape(4,1)
         self.Z_i = np.array([0, 0, 0, 1], dtype=np.float32).reshape(4,1)
 
+        # 2x1 vector to hold gps velocity measurements
+        self.Z_i_gps = np.zeros((2,1), dtype=np.float32)
+
         
         ## EKF Data
 
@@ -108,6 +111,13 @@ class TargetEKF(object):
         # Measurement Uncertainty
         self.R = np.diag([1.0, 1.0])
 
+        # Measurement Jacobian for GPS velocity updates
+        self.H_gps = np.array([[0, 0, 1, 0],
+                           [0, 0, 0, 1]], dtype=np.float32)
+
+        # Measurement Uncertainty for GPS velocity updates
+        self.R_gps = np.diag([1.0, 1.0])
+
         # Identity
         self.I = np.eye(4, dtype=np.float32)
 
@@ -130,9 +140,11 @@ class TargetEKF(object):
 
         # Subscribe to the ArUco's pose in the camera frame
         self.target_sub = rospy.Subscriber('/aruco/estimate', PoseStamped, self.target_callback)
+        self.gps_velocity_sub = rospy.Subscriber('/boat_ne_velocity', Point32, self.target_gps_callback)
 
         self.euler_sub = rospy.Subscriber('/quadcopter/euler', Vector3Stamped, self.euler_callback)
         self.position_sub = rospy.Subscriber('/quadcopter/ground_truth/odometry/NED', Odometry, self.position_callback)
+
 
         # self.estimate_rate = 50.0
         # self.estimate_timer = rospy.Timer(rospy.Duration(1.0/self.estimate_rate), self.send_estimate)
@@ -178,6 +190,28 @@ class TargetEKF(object):
         # print "Target VN: %f" % self.x_hat[2][0]
         # print "Target VE: %f" % self.x_hat[3][0]
         # print "\n"
+
+
+    def target_gps_callback(self, msg):
+
+        # Get the time.
+        now = rospy.get_time()
+
+        # Get the message data
+        self.Z_i_gps[0][0] = msg.x
+        self.Z_i_gps[1][0] = msg.y
+
+
+        # Propagate.
+        self.propagate(now)
+
+        # Run a measurement update step on our EKF.
+        self.update_step_gps()
+
+        # Publish.
+        self.publish_estimate()
+
+
 
 
     def propagate(self, t):
@@ -254,6 +288,22 @@ class TargetEKF(object):
 
         # Update covariance.
         self.P = np.dot((self.I - np.dot(self.K, self.H)), self.P)
+
+        # print "Update ArUco"
+
+
+    def update_step_gps(self):
+
+        # Compute the Kalman Gain.
+        self.K = np.dot(self.P, np.dot(self.H_gps.T, np.linalg.inv(np.dot(self.H_gps, np.dot(self.P, self.H_gps.T)) + self.R_gps)))
+
+        # Update the estimate.
+        self.x_hat = self.x_hat + np.dot(self.K, (self.Z_i_gps - self.x_hat[2:4]))
+
+        # Update covariance.
+        self.P = np.dot((self.I - np.dot(self.K, self.H_gps)), self.P)
+
+        # print "Update GPS"
 
 
     def publish_estimate(self):
