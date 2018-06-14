@@ -163,7 +163,7 @@
         <param name="id_outer" value="148" />
         <param name="id_inner" value="65" />
 
-        <param name="draw_data" value="true" />
+        <param name="draw_data" value="false" />
 
         <param name="shrink_image" value="true" />
 
@@ -224,7 +224,7 @@
     <!--  -->
 
     <group if="$(arg record_rosbag)">
-        <node name="record" pkg="rosbag" type="record" args="/mavros/local_position/pose /mavros/local_position/odom /mavros/local_position/velocity /mavros_ned/estimate /mavros_ned/euler /aruco/marker_corners_outer /aruco/marker_corners_inner /camera_info /image_raw/compressed /aruco/estimate /aruco/distance_inner /aruco/distance_outer /aruco/heading_outer /quadcopter/high_level_command /mavros/setpoint_raw/local /quadcopter/attitude_avg /quadcopter/ibvs_active /status_flag /ibvs_status_flag /ibvs/vel_cmd /ibvs_inner/vel_cmd /aruco/orientation_inner /ibvs/ibvs_error_outer /ibvs/ibvs_error_inner /target_position /target_ekf/velocity /target_ekf/velocity_lpf -o $(arg test_name)" />
+        <node name="record" pkg="rosbag" type="record" args="/mavros/local_position/pose /mavros/local_position/odom /mavros/local_position/velocity /mavros_ned/estimate /mavros_ned/euler /aruco/marker_corners_outer /aruco/marker_corners_inner /camera_info /aruco/image/compressed /aruco/estimate /aruco/distance_inner /aruco/distance_outer /aruco/heading_outer /quadcopter/high_level_command /mavros/setpoint_raw/local /quadcopter/attitude_avg /quadcopter/ibvs_active /status_flag /ibvs_status_flag /ibvs/vel_cmd /ibvs_inner/vel_cmd /aruco/orientation_inner /ibvs/ibvs_error_outer /ibvs/ibvs_error_inner /target_position /target_ekf/velocity /target_ekf/velocity_lpf -o $(arg test_name)" />
     </group>
 
 
