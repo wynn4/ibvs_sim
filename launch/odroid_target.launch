@@ -25,4 +25,9 @@
                          }
     </rosparam>
 	<node name="inertial_sense_node" pkg="inertial_sense" type="inertial_sense_node" output="screen"/>
+
+
+  <!-- Velocity and Lat/Lon Publisher -->
+  <node name="ins_gps_pub" pkg="ibvs_sim" type="ins_velocity_pub.py" output="screen"/>
+  
 </launch>
