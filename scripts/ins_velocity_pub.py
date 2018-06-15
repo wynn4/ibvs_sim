@@ -6,6 +6,7 @@
 import rospy
 from inertial_sense.msg import GPS
 from geometry_msgs.msg import Point32
+from geometry_msgs.msg import Point
 import numpy as np
 
 
@@ -24,7 +25,7 @@ class InertialSenseGPSPublisher(object):
 
         # Initialize messages
         self.velocity_msg = Point32()
-        self.lat_lon_msg = Point32()
+        self.lat_lon_msg = Point()
         
         # Initialize timers.
         # self.update_rate = 1.0
@@ -32,7 +33,7 @@ class InertialSenseGPSPublisher(object):
 
         # Initialize publishers
         self.velocity_pub = rospy.Publisher('/ins_ne_velocity', Point32, queue_size=1)
-        self.lat_lon_pub = rospy.Publisher('/ins_lat_lon', Point32, queue_size=1)
+        self.lat_lon_pub = rospy.Publisher('/ins_lat_lon', Point, queue_size=1)
 
         # Initialize subscriber
         self.ins_sub = rospy.Subscriber('/gps', GPS, self.gps_callback)
