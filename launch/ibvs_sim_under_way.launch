@@ -163,6 +163,9 @@
 
   <!-- Target EKF -->
   <node name="target_ekf" pkg="ibvs_sim" type="target_ekf.py" output="screen">
+    <remap from="/target_position" to="/boat/odometry/NED"/>
+    <param name="R_aruco" value="1.0" />
+    <param name="R_gps" value="1.0" />
   </node>
 
   <!-- Boat NE velocity publisher -->
@@ -183,6 +186,8 @@
     <param name="marker_size_inner" value="0.125" />
     <param name="id_outer" value="148" />
     <param name="id_inner" value="65" />
+    <!-- <param name="id_outer" value="1" />
+    <param name="id_inner" value="2" /> -->
 
     <param name="draw_data" value="$(arg draw_aruco_data)" />
     <param name="debug_save_input_frames" value="false" />

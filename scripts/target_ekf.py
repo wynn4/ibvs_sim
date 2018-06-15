@@ -34,6 +34,9 @@ class TargetEKF(object):
         self.delta_y = rospy.get_param('~delta_y', 0.0)
         self.delta_z = rospy.get_param('~delta_z', 0.0)
 
+        self.r_aruco = rospy.get_param('~R_aruco', 1.0)
+        self.r_gps = rospy.get_param('~R_gps', 1.0)
+
 
         ## Static Transformations
         # Transform from camera to mount frame
@@ -109,14 +112,14 @@ class TargetEKF(object):
                            [0, 1, 0, 0]], dtype=np.float32)
 
         # Measurement Uncertainty
-        self.R = np.diag([1.0, 1.0])
+        self.R = np.diag([self.r_aruco, self.r_aruco])
 
         # Measurement Jacobian for GPS velocity updates
         self.H_gps = np.array([[0, 0, 1, 0],
                            [0, 0, 0, 1]], dtype=np.float32)
 
         # Measurement Uncertainty for GPS velocity updates
-        self.R_gps = np.diag([1.0, 1.0])
+        self.R_gps = np.diag([self.r_gps, self.r_gps])
 
         # Identity
         self.I = np.eye(4, dtype=np.float32)
@@ -144,6 +147,8 @@ class TargetEKF(object):
 
         self.euler_sub = rospy.Subscriber('/quadcopter/euler', Vector3Stamped, self.euler_callback)
         self.position_sub = rospy.Subscriber('/quadcopter/ground_truth/odometry/NED', Odometry, self.position_callback)
+
+        self.target_ne_pos_sub = rospy.Subscriber('/target_position', Odometry, self.target_ne_pos_callback)
 
 
         # self.estimate_rate = 50.0
@@ -192,12 +197,24 @@ class TargetEKF(object):
         # print "\n"
 
 
+    def target_ne_pos_callback(self, msg):
+
+        # Initialize x_hat to be the first received location of the target
+        self.x_hat[0][0] = msg.pose.pose.position.x
+        self.x_hat[1][0] = msg.pose.pose.position.y
+
+        print "Target_EKF: Got initial target location."
+
+        # Then unregister
+        self.target_ne_pos_sub.unregister()
+
+
     def target_gps_callback(self, msg):
 
         # Get the time.
         now = rospy.get_time()
 
-        # Get the message data
+        # Get the gps velocity message data
         self.Z_i_gps[0][0] = msg.x
         self.Z_i_gps[1][0] = msg.y
 
