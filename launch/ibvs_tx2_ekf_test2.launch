@@ -144,6 +144,7 @@
 
         <param name="delta_z" value="0.08" />
 
+        <remap from="/boat_ne_velocity" to="/ins_ne_velocity" />
         <remap from="/quadcopter/euler" to="/mavros_ned/euler" />
         <remap from="/quadcopter/ground_truth/odometry/NED" to="/mavros_ned/estimate" />
 
