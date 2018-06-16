@@ -133,6 +133,7 @@ class TargetEKF(object):
         self.first_time = True
         self.t_prev = 0.0
         self.dt = 0.0
+        self.ready_to_propigate = False
 
         self.velocity_msg = Point32()
         self.velocity_lpf_msg = Point32()
@@ -205,6 +206,8 @@ class TargetEKF(object):
 
         print "Target_EKF: Got initial target location."
 
+        self.ready_to_propigate = True
+
         # Then unregister
         self.target_ne_pos_sub.unregister()
 
@@ -220,15 +223,16 @@ class TargetEKF(object):
 
 
         # Propagate.
-        self.propagate(now)
+        if self.ready_to_propigate:
+            self.propagate(now)
 
-        # Run a measurement update step on our EKF.
-        self.update_step_gps()
+            # Run a measurement update step on our EKF.
+            self.update_step_gps()
 
-        # Publish.
-        self.publish_estimate()
-
-
+            # Publish.
+            self.publish_estimate()
+        else:
+            pass
 
 
     def propagate(self, t):
