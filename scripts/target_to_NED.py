@@ -19,6 +19,7 @@ class TargetToNED(object):
         # Load ROS params.
 
         self.copter_is_armed = False
+        self.ready_to_publish = False
 
         # Default to the intersection in Springville
         self.home_lat = 40.174346
@@ -59,9 +60,12 @@ class TargetToNED(object):
         self.target_msg.pose.pose.position.y = self.target_east
 
         # Publish.
-        self.target_ned_pub.publish(self.target_msg)
+        if self.ready_to_publish:
+            self.target_ned_pub.publish(self.target_msg)
+        else:
+            pass
 
-        
+
     def mavros_status_callback(self, msg):
 
         # See if the copter is armed.
@@ -85,6 +89,8 @@ class TargetToNED(object):
             # Store our home latitude and longitude.
             self.home_lat = lat
             self.home_lon = lon
+
+            self.ready_to_publish = True
 
             print "Target_to_NED: Home Location Set."
 
