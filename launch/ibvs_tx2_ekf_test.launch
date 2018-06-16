@@ -33,6 +33,10 @@
     <arg name="lambda_vz" value="0.7" />
     <arg name="lambda_wz" value="0.5" />
 
+    <!-- Target EKF Measurement Uncertainty -->
+    <arg name="R_aruco" value="1.0" />
+    <arg name="R_gps" value="0.5" />
+
     <!-- rosbag args -->
     <arg name="record_rosbag" default="false" />
 
@@ -143,6 +147,8 @@
     <node name="target_ekf" pkg="ibvs_sim" type="target_ekf.py" output="screen">
 
         <param name="delta_z" value="0.08" />
+        <param name="R_aruco" value="$(arg R_aruco)" />
+        <param name="R_gps" value="$(arg R_gps)" />
 
         <remap from="/boat_ne_velocity" to="/ins_ne_velocity" />
         <remap from="/quadcopter/euler" to="/mavros_ned/euler" />
