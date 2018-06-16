@@ -208,9 +208,12 @@
     <!-- Target Publisher -->
     <!--  -->
 
-    <node name="target_publisher" pkg="ibvs_sim" type="target_pub.py" output="screen">
+    <!-- <node name="target_publisher" pkg="ibvs_sim" type="target_pub.py" output="screen">
         <param name="target_N" value="$(arg tn)" />
         <param name="target_E" value="$(arg te)" />
+    </node> -->
+
+    <node name="target_ned_publisher" pkg="ibvs_sim" type="target_to_NED.py" output="screen">
     </node>
 
 
