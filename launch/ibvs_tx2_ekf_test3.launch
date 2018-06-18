@@ -17,21 +17,32 @@
     <arg name="v_max_outer" value="0.5" />
     <arg name="w_max_outer" value="0.7" />
 
-    <arg name="u_max_inner" value="0.2" />
-    <arg name="v_max_inner" value="0.2" />
-    <arg name="w_max_inner" value="0.2" />
+    <arg name="u_max_inner" value="0.3" />
+    <arg name="v_max_inner" value="0.3" />
+    <arg name="w_max_inner" value="0.3" />
 
     <arg name="rendezvous_height" value="13.1" />
     <arg name="wp_threshold" value="1.0" />
 
     <arg name="landing_distance_threshold" value="0.5" />
     <arg name="p_des_error_outer_threshold" value="50.0" />
+    <arg name="p_des_error_inner_threshold" value="70.0" />
+    <arg name="inner_error_condition" value="True" />
 
     <!-- IBVS Control Gains -->
     <arg name="lambda_vx" value="0.5" />
     <arg name="lambda_vy" value="0.5" />
     <arg name="lambda_vz" value="0.7" />
     <arg name="lambda_wz" value="0.4" />
+
+    <!-- IBVS Control Gains (Inner) -->
+    <arg name="square_root_dist_inner" value="true" />
+    <arg name="adaptive_inner" value="false" />
+
+    <arg name="lambda_vx_inner" value="0.5" />
+    <arg name="lambda_vy_inner" value="0.5" />
+    <arg name="lambda_vz_inner" value="0.7" />
+    <arg name="lambda_wz_inner" value="0.4" />
 
     <!-- Target EKF Measurement Uncertainty -->
     <arg name="R_aruco" value="1.5" />
@@ -86,7 +97,7 @@
     <!-- IBVS Control -->
     <!--  -->
 
-    <rosparam command="load" file="$(find ibvs_sim)/params/ibvs_positioning_high.yaml"/>
+    <rosparam command="load" file="$(find ibvs_sim)/params/ibvs.yaml"/>
 
     <!-- p_des Publisher -->
     <node name="p_des_mapper" pkg="ibvs_sim" type="p_des_mapper.py" output="screen">
@@ -105,6 +116,27 @@
         <remap from="/aruco/marker_corners" to="/aruco/marker_corners_outer"/>
         <remap from="/aruco/distance" to="/aruco/distance_outer"/>
         <remap from="/ibvs/ibvs_error" to="/ibvs/ibvs_error_outer" />
+
+        <remap from="/quadcopter/estimate" to="/mavros_ned/estimate" />
+        <remap from="/quadcopter/camera/camera_info" to="/camera_info" />
+    </node>
+
+    <!-- IBVS Inner -->
+    <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs_adaptive.py" output="screen">
+
+        <param name="adaptive" value="$(arg adaptive_inner)"/>
+        <param name="square_root_dist" value="$(arg square_root_dist_inner)"/>
+
+        <param name="lambda_vx" value="$(arg lambda_vx_inner)"/>
+        <param name="lambda_vy" value="$(arg lambda_vy_inner)"/>
+        <param name="lambda_vz" value="$(arg lambda_vz_inner)"/>
+        <param name="lambda_wz" value="$(arg lambda_wz_inner)"/>
+
+        <remap from="/ibvs/pdes" to="/ibvs/pdes_inner"/>
+        <remap from="/aruco/marker_corners" to="/aruco/marker_corners_inner"/>
+        <remap from="/aruco/distance" to="/aruco/distance_inner"/>
+        <remap from="/ibvs/vel_cmd" to="/ibvs_inner/vel_cmd"/>
+        <remap from="/ibvs/ibvs_error" to="/ibvs/ibvs_error_inner" />
 
         <remap from="/quadcopter/estimate" to="/mavros_ned/estimate" />
         <remap from="/quadcopter/camera/camera_info" to="/camera_info" />
@@ -132,6 +164,8 @@
 
         <param name="landing_distance_threshold" value="$(arg landing_distance_threshold)" />
         <param name="p_des_error_outer_threshold" value="$(arg p_des_error_outer_threshold)" />
+        <param name="p_des_error_inner_threshold" value="$(arg p_des_error_inner_threshold)" />
+        <param name="inner_error_condition" value="$(arg inner_error_condition)" />
 
         <param name="test_name" value="$(arg test_name)" />
 

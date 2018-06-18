@@ -9,8 +9,8 @@
     <arg name="test_name" />
 
     <!-- Target Location args -->
-    <arg name="tn" />
-    <arg name="te" />
+    <!-- <arg name="tn" />
+    <arg name="te" /> -->
 
     <!-- State Machine args -->
     <arg name="u_max_outer" value="0.5" />
@@ -24,18 +24,18 @@
     <arg name="rendezvous_height" value="13.1" />
     <arg name="wp_threshold" value="1.0" />
 
-    <arg name="landing_distance_threshold" value="0.5" />
+    <arg name="landing_distance_threshold" value="0.45" />
     <arg name="p_des_error_outer_threshold" value="50.0" />
 
     <!-- IBVS Control Gains -->
     <arg name="lambda_vx" value="0.5" />
     <arg name="lambda_vy" value="0.5" />
     <arg name="lambda_vz" value="0.7" />
-    <arg name="lambda_wz" value="0.5" />
+    <arg name="lambda_wz" value="0.4" />
 
     <!-- Target EKF Measurement Uncertainty -->
-    <arg name="R_aruco" value="1.0" />
-    <arg name="R_gps" value="0.5" />
+    <arg name="R_aruco" value="1.5" />
+    <arg name="R_gps" value="0.25" />
 
     <!-- rosbag args -->
     <arg name="record_rosbag" default="false" />
@@ -234,7 +234,7 @@
     <!--  -->
 
     <group if="$(arg record_rosbag)">
-        <node name="record" pkg="rosbag" type="record" args="/mavros/local_position/pose /mavros/local_position/odom /mavros/local_position/velocity /mavros_ned/estimate /mavros_ned/euler /aruco/marker_corners_outer /aruco/marker_corners_inner /camera_info /aruco/image/compressed /aruco/estimate /aruco/distance_inner /aruco/distance_outer /aruco/heading_outer /quadcopter/high_level_command /mavros/setpoint_raw/local /quadcopter/attitude_avg /quadcopter/ibvs_active /status_flag /ibvs_status_flag /ibvs/vel_cmd /ibvs_inner/vel_cmd /aruco/orientation_inner /ibvs/ibvs_error_outer /ibvs/ibvs_error_inner /target_position /target_ekf/velocity /target_ekf/velocity_lpf -o $(arg test_name)" />
+        <node name="record" pkg="rosbag" type="record" args="/mavros/local_position/pose /mavros/local_position/odom /mavros/local_position/velocity /mavros_ned/estimate /mavros_ned/euler /aruco/marker_corners_outer /aruco/marker_corners_inner /camera_info /aruco/image/compressed /aruco/estimate /aruco/distance_inner /aruco/distance_outer /aruco/heading_outer /quadcopter/high_level_command /mavros/setpoint_raw/local /quadcopter/attitude_avg /quadcopter/ibvs_active /status_flag /ibvs_status_flag /ibvs/vel_cmd /ibvs_inner/vel_cmd /aruco/orientation_inner /ibvs/ibvs_error_outer /ibvs/ibvs_error_inner /target_position /target_ekf/velocity /target_ekf/velocity_lpf /ins_ne_velocity /ins_lat_lon /gps -o $(arg test_name)" />
     </group>
 
 
