@@ -7,6 +7,7 @@ import rospy
 from mavros_msgs.msg import PositionTarget
 from mavros_msgs.msg import AttitudeTarget
 from geometry_msgs.msg import Vector3
+from mavros_msgs.srv import CommandBool
 import numpy as np
 
 
@@ -34,6 +35,8 @@ class TestThrottle(object):
         # Initialize publisher
         # self.other_pub = rospy.Publisher("/mavros/setpoint_raw/local", PositionTarget, queue_size=1)
         self.land_pub = rospy.Publisher("/mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=1)
+
+        self.arm_srv = rospy.ServiceProxy('/mavros/cmd/arming', CommandBool)
 
         # Initialize timers.
         self.update_rate = 20.0
@@ -109,6 +112,12 @@ class TestThrottle(object):
             rospy.sleep(ramp_time / 10.0)
 
         # Disarm Here
+        rospy.wait_for_service('/mavros/cmd/arming')
+        try:
+            success = self.arm_srv(value=False)
+        except rospy.ServiceException, e:
+                print "service call disarm failed: %s" % e
+                
         print "Disarm."
         self.landed = True
 
