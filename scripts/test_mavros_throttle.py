@@ -25,11 +25,15 @@ class TestThrottle(object):
         # (i.e., we want x-pos, y-pos, z-pos, yaw).
         self.ignore_mask = (AttitudeTarget.IGNORE_ATTITUDE)
 
-        self.thrust_val = 0.0
+        self.thrust_val = 0.5
+        self.Time = 0.0
         
+        self.landing_thrust0 = 0.45
+        self.landed = False
 
         # Initialize publisher
-        self.command_pub = rospy.Publisher("/mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=1)
+        # self.other_pub = rospy.Publisher("/mavros/setpoint_raw/local", PositionTarget, queue_size=1)
+        self.land_pub = rospy.Publisher("/mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=1)
 
         # Initialize timers.
         self.update_rate = 20.0
@@ -39,7 +43,28 @@ class TestThrottle(object):
         self.cycle_rate_timer = rospy.Timer(rospy.Duration(1.0/self.cycle_rate), self.cycle)
 
 
-    def send_commands(self, event):
+    # def send_commands(self, event):
+
+    #     waypoint_command_msg = PositionTarget()
+    #     waypoint_command_msg.header.stamp = rospy.get_rostime()
+    #     waypoint_command_msg.coordinate_frame = waypoint_command_msg.FRAME_LOCAL_NED
+    #     waypoint_command_msg.type_mask = self.ignore_mask
+
+    #     waypoint_command_msg.position.x = 0.0  # E
+    #     waypoint_command_msg.position.y = 0.0  # N
+    #     waypoint_command_msg.position.z = 15.0  # U
+
+    #     yaw = -self.heading + np.radians(90.0)
+    #     while yaw > np.radians(180.0):  yaw = yaw - np.radians(360.0)
+    #     while yaw < np.radians(-180.0):  yaw = yaw + np.radians(360.0)
+
+    #     waypoint_command_msg.yaw = yaw
+
+    #     # Publish.
+    #     self.command_pub.publish(waypoint_command_msg)
+
+
+    def send_commands(self):
 
         command_msg = AttitudeTarget()
         command_msg.header.stamp = rospy.get_rostime()
@@ -52,20 +77,41 @@ class TestThrottle(object):
         command_msg.thrust = self.thrust_val
 
         # Publish.
-        self.command_pub.publish(command_msg)
+        self.land_pub.publish(command_msg)
 
 
     def cycle(self, event):
 
         # Increment.
-        self.thrust_val = self.thrust_val + 0.1
+        self.Time = self.Time + 1.0
+        print self.Time
 
-        print self.thrust_val
+        if self.Time >= 5.0 and self.landed == False:
+            self.do_landing(self.landing_thrust0)
+        else:
+            pass
 
-        # Reset.
-        if self.thrust_val >= 1.0:
-            print "Reset."
-            self.thrust_val = 0.0
+
+    def do_landing(self, start_thrust):
+
+        self.thrust_val = start_thrust
+
+        # We want the ramp down to take place in 1.0 seconds
+        ramp_time = 1.0
+        decrement = start_thrust / 10.0
+
+
+        for x in range(0, 9):
+
+            self.thrust_val -= decrement
+            print self.thrust_val
+            rospy.sleep(ramp_time / 10.0)
+
+        # Disarm Here
+        print "Disarm."
+        self.landed = True
+
+
 
 
 
