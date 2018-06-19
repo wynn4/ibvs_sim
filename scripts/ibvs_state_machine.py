@@ -14,7 +14,9 @@ from geometry_msgs.msg import Point
 from geometry_msgs.msg import Quaternion
 from rosflight_msgs.msg import Command
 from mavros_msgs.msg import PositionTarget
+from mavros_msgs.msg import AttitudeTarget
 from mavros_msgs.srv import SetMode
+from mavros_msgs.srv import CommandBool
 import numpy as np
 import tf
 from collections import deque
@@ -82,6 +84,9 @@ class StateMachine():
         self.inner_error_condition = rospy.get_param('~inner_error_condition', False)
 
         self.test_name = rospy.get_param('~test_name', 'test1')
+
+        self.landing_thrust0 = rospy.get_param('~landing_thrust', 0.45)
+        self.thrust_val = self.landing_thrust0
 
         self.wp_error = 1.0e3
         self.p_des_error_outer = 1.0e3
@@ -166,7 +171,7 @@ class StateMachine():
 
         self.distance = 10.0
 
-        self.land_mode_sent = False
+        # self.land_mode_sent = False
 
         self.ned_vel_vec_inner = np.array([[0.0],
                                            [0.0],
@@ -202,6 +207,8 @@ class StateMachine():
                             | PositionTarget.FORCE
                             | PositionTarget.IGNORE_YAW_RATE)
 
+        self.attitude_mask = (AttitudeTarget.IGNORE_ATTITUDE)
+
         # Set Up Publishers and Subscribers
         self.target_sub = rospy.Subscriber('/target_position', Odometry, self.target_callback, queue_size=1)
         self.ibvs_sub = rospy.Subscriber('/ibvs/vel_cmd', Twist, self.ibvs_velocity_cmd_callback, queue_size=1)
@@ -216,6 +223,7 @@ class StateMachine():
 
         self.command_pub_roscopter = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
         self.command_pub_mavros = rospy.Publisher('/mavros/setpoint_raw/local', PositionTarget, queue_size=1)
+        self.attitude_pub_mavros = rospy.Publisher("/mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=1)
         self.avg_attitude_pub = rospy.Publisher('/quadcopter/attitude_avg', Point, queue_size=1)
         self.ibvs_active_pub_ = rospy.Publisher('/quadcopter/ibvs_active', Bool, queue_size=1)
         self.status_flag_pub = rospy.Publisher('/status_flag', String, queue_size=1)
@@ -223,6 +231,7 @@ class StateMachine():
 
         # Set Up Service Proxy
         self.set_mode_srv = rospy.ServiceProxy('/mavros/set_mode', SetMode)
+        self.arm_srv = rospy.ServiceProxy('/mavros/cmd/arming', CommandBool)
 
         self.ibvs_active_msg = Bool()
         self.ibvs_active_msg.data = False
@@ -365,6 +374,10 @@ class StateMachine():
 
             self.ibvs_active_msg.data = False
             self.ibvs_active_pub_.publish(self.ibvs_active_msg)
+
+            # if self.mode_flag == 'mavros':
+            #     # We use the AttitudeTarget message to do the final landing manuver.
+            #     self.send_attitude_command()
 
 
         self.status_flag_msg.data = self.status_flag
@@ -556,18 +569,25 @@ class StateMachine():
     def execute_landing(self):
         
         if self.mode_flag == 'mavros':
-            
-            rospy.wait_for_service('/mavros/set_mode')
-            try:
-                isModeChanged = self.set_mode_srv(custom_mode='AUTO.LAND')
-            
-                if isModeChanged:
-                    self.land_mode_sent = True
-                    print "mode %s sent." % 'AUTO.LAND'
-                    self.status_flag = 'LAND'
 
-            except rospy.ServiceException, e:
-                print "service call set_mode failed: %s" % e
+            # Update the status flag.
+            self.status_flag = 'LAND'
+
+            # Ramp down the motors.
+            self.ramp_down_motors(self.landing_thrust0)
+
+            
+            # rospy.wait_for_service('/mavros/set_mode')
+            # try:
+            #     isModeChanged = self.set_mode_srv(custom_mode='AUTO.LAND')
+            
+            #     if isModeChanged:
+            #         self.land_mode_sent = True
+            #         print "mode %s sent." % 'AUTO.LAND'
+            #         self.status_flag = 'LAND'
+
+            # except rospy.ServiceException, e:
+            #     print "service call set_mode failed: %s" % e
 
         else:
             
@@ -579,6 +599,37 @@ class StateMachine():
             command_msg.mode = Command.MODE_ROLL_PITCH_YAWRATE_THROTTLE
             self.command_pub_roscopter.publish(command_msg)
             self.status_flag = 'LAND'
+
+
+    def ramp_down_motors(self, start_thrust):
+
+        self.thrust_val = start_thrust
+
+        # We want the ramp down to take place in 0.5 seconds
+        ramp_time = 0.5
+        decrement = start_thrust / 10.0
+
+        for x in range(0, 10):
+
+            self.thrust_val -= decrement
+            # print self.thrust_val
+            # print "there"
+
+            # Send the attitude and thrust setpoint message.
+            self.send_attitude_command()
+
+            # Wait a sec since we want the ramp down to happen in 0.5 seconds.
+            rospy.sleep(ramp_time / 10.0)
+
+        # Disarm Here
+        rospy.wait_for_service('/mavros/cmd/arming')
+        try:
+            success = self.arm_srv(value=False)
+
+            if success:
+                print "Disarm."
+        except rospy.ServiceException, e:
+                print "service call disarm failed: %s" % e
 
 
     def send_ibvs_command(self, flag):
@@ -676,6 +727,22 @@ class StateMachine():
 
             # Publish.
             self.command_pub_roscopter.publish(wp_command_msg)
+
+
+    def send_attitude_command(self):
+
+        command_msg = AttitudeTarget()
+        command_msg.header.stamp = rospy.get_rostime()
+        command_msg.type_mask = self.attitude_mask
+
+        command_msg.body_rate.x = 0.0
+        command_msg.body_rate.y = 0.0
+        command_msg.body_rate.z = 0.0
+
+        command_msg.thrust = self.thrust_val
+
+        # Publish.
+        self.attitude_pub_mavros.publish(command_msg)
 
 
     def send_avg_attitude(self, event):
