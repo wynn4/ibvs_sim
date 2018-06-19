@@ -79,6 +79,7 @@ class TestThrottle(object):
 
         command_msg.thrust = self.thrust_val
         print self.thrust_val
+        print "here"
 
         # Publish.
         self.land_pub.publish(command_msg)
@@ -110,6 +111,7 @@ class TestThrottle(object):
 
             self.thrust_val -= decrement
             print self.thrust_val
+            print "there"
             rospy.sleep(ramp_time / 10.0)
 
         # Disarm Here
@@ -122,7 +124,7 @@ class TestThrottle(object):
                 self.landed = True
         except rospy.ServiceException, e:
                 print "service call disarm failed: %s" % e
-                
+
 
 def main():
     # initialize a node
