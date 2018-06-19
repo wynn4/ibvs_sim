@@ -57,6 +57,8 @@ class TestThrottle(object):
 
     def cycle(self, event):
 
+        print self.thrust_val
+
         if self.thrust_val == 1.0:
             self.thrust_val = 0.0
         else:
