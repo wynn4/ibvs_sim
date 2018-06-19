@@ -75,6 +75,7 @@ class TestThrottle(object):
         command_msg.body_rate.z = 0.0
 
         command_msg.thrust = self.thrust_val
+        print self.thrust_val
 
         # Publish.
         self.land_pub.publish(command_msg)
@@ -101,7 +102,7 @@ class TestThrottle(object):
         decrement = start_thrust / 10.0
 
 
-        for x in range(0, 9):
+        for x in range(0, 10):
 
             self.thrust_val -= decrement
             print self.thrust_val
