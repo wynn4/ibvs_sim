@@ -98,7 +98,7 @@ class TestThrottle(object):
         self.thrust_val = start_thrust
 
         # We want the ramp down to take place in 1.0 seconds
-        ramp_time = 1.0
+        ramp_time = 0.5
         decrement = start_thrust / 10.0
 
 
