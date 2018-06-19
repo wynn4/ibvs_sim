@@ -98,6 +98,7 @@ class TestThrottle(object):
 
     def do_landing(self, start_thrust):
 
+        print "Landing!!!"
         self.thrust_val = start_thrust
 
         # We want the ramp down to take place in 1.0 seconds
@@ -115,18 +116,13 @@ class TestThrottle(object):
         rospy.wait_for_service('/mavros/cmd/arming')
         try:
             success = self.arm_srv(value=False)
+
+            if success:
+                print "Disarm."
+                self.landed = True
         except rospy.ServiceException, e:
                 print "service call disarm failed: %s" % e
                 
-        print "Disarm."
-        self.landed = True
-
-
-
-
-
-
-
 
 def main():
     # initialize a node
