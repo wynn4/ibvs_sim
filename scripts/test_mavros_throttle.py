@@ -60,6 +60,8 @@ class TestThrottle(object):
         # Increment.
         self.thrust_val = self.thrust_val + 0.1
 
+        print self.thrust_val
+
         # Reset.
         if self.thrust_val == 1.0:
             self.thrust_val = 0.0
