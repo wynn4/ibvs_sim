@@ -115,7 +115,7 @@
     <!-- IBVS State Machine -->
     <!--  -->
 
-    <node name="ibvs_state_machine" pkg="ibvs_sim" type="ibvs_state_machine_uw.py" output="screen" >
+    <node name="ibvs_state_machine" pkg="ibvs_sim" type="ibvs_state_machine.py" output="screen" >
 
         <param name ="mode" value="mavros" />
 

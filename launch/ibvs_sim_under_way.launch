@@ -76,7 +76,7 @@
     </node>
 
     <!-- Waypoint Manager -->
-    <node name="waypoint_manager" pkg="ibvs_sim" type="ibvs_state_machine_uw.py" output="screen">
+    <node name="waypoint_manager" pkg="ibvs_sim" type="ibvs_state_machine.py" output="screen">
       <param name ="mode" value="roscopter" />
 
       <param name="wp_threshold" value="0.5" />

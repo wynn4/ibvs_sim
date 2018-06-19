@@ -11,6 +11,7 @@ from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point32
 from geometry_msgs.msg import Quaternion
 from rosflight_msgs.msg import Command
 from mavros_msgs.msg import PositionTarget
@@ -92,9 +93,11 @@ class StateMachine():
         self.p_des_error_outer = 1.0e3
         self.p_des_error_inner = 1.0e3
 
-        # initialize target location
+        # initialize target location and velocity
         self.target_N = 0.0
         self.target_E = 0.0
+        self.target_VN = 0.0
+        self.target_VE = 0.0
 
         # Initialize waypoint setpoint
         self.wp_N = 5.0
@@ -219,11 +222,12 @@ class StateMachine():
         self.state_sub = rospy.Subscriber('estimate', Odometry, self.state_callback)
         self.ibvs_ave_error_sub = rospy.Subscriber('/ibvs/ibvs_error_outer', Float32, self.ibvs_ave_error_callback)
         self.ibvs_ave_error_inner_sub = rospy.Subscriber('/ibvs/ibvs_error_inner', Float32, self.ibvs_ave_error_inner_callback)
+        self.target_velocity_sub = rospy.Subscriber('/target_ekf/velocity_lpf', Point32, self.target_velocity_callback)
 
 
         self.command_pub_roscopter = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
         self.command_pub_mavros = rospy.Publisher('/mavros/setpoint_raw/local', PositionTarget, queue_size=1)
-        self.attitude_pub_mavros = rospy.Publisher("/mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=1)
+        self.attitude_pub_mavros = rospy.Publisher('/mavros/setpoint_raw/attitude', AttitudeTarget, queue_size=1)
         self.avg_attitude_pub = rospy.Publisher('/quadcopter/attitude_avg', Point, queue_size=1)
         self.ibvs_active_pub_ = rospy.Publisher('/quadcopter/ibvs_active', Bool, queue_size=1)
         self.status_flag_pub = rospy.Publisher('/status_flag', String, queue_size=1)
@@ -642,8 +646,8 @@ class StateMachine():
                 ibvs_command_msg.coordinate_frame = ibvs_command_msg.FRAME_BODY_NED
                 ibvs_command_msg.type_mask = self.velocity_mask
 
-                ibvs_command_msg.velocity.x = self.saturate(self.ibvs_x_inner, self.u_max_inner, -self.u_max_inner)
-                ibvs_command_msg.velocity.y = self.saturate(self.ibvs_y_inner, self.v_max_inner, -self.v_max_inner)
+                ibvs_command_msg.velocity.x = self.saturate(self.ibvs_x_inner, self.u_max_inner, -self.u_max_inner) + self.target_VE*np.cos(self.psi) - self.target_VN*np.sin(self.psi)
+                ibvs_command_msg.velocity.y = self.saturate(self.ibvs_y_inner, self.v_max_inner, -self.v_max_inner) + self.target_VN*np.cos(self.psi) + self.target_VE*np.sin(self.psi)
                 ibvs_command_msg.velocity.z = self.saturate(self.ibvs_F_inner, self.w_max_inner, -self.w_max_inner)
 
                 ibvs_command_msg.yaw_rate = self.ibvs_z_inner
@@ -658,8 +662,8 @@ class StateMachine():
                 ibvs_command_msg.coordinate_frame = ibvs_command_msg.FRAME_BODY_NED
                 ibvs_command_msg.type_mask = self.velocity_mask
 
-                ibvs_command_msg.velocity.x = self.saturate(self.ibvs_x, self.u_max, -self.u_max)
-                ibvs_command_msg.velocity.y = self.saturate(self.ibvs_y, self.v_max, -self.v_max)
+                ibvs_command_msg.velocity.x = self.saturate(self.ibvs_x, self.u_max, -self.u_max) + self.target_VE*np.cos(self.psi) - self.target_VN*np.sin(self.psi)
+                ibvs_command_msg.velocity.y = self.saturate(self.ibvs_y, self.v_max, -self.v_max) + self.target_VN*np.cos(self.psi) + self.target_VE*np.sin(self.psi)
                 ibvs_command_msg.velocity.z = self.saturate(self.ibvs_F, self.w_max, -self.w_max)
 
                 ibvs_command_msg.yaw_rate = self.ibvs_z
@@ -674,8 +678,8 @@ class StateMachine():
             if flag == 'inner':
 
                 ibvs_command_msg = Command()
-                ibvs_command_msg.x = self.saturate(self.ibvs_x_inner, self.u_max_inner, -self.u_max_inner)
-                ibvs_command_msg.y = self.saturate(self.ibvs_y_inner, self.v_max_inner, -self.v_max_inner)
+                ibvs_command_msg.x = self.saturate(self.ibvs_x_inner, self.u_max_inner, -self.u_max_inner) + self.target_VN*np.cos(self.psi) + self.target_VE*np.sin(self.psi)
+                ibvs_command_msg.y = self.saturate(self.ibvs_y_inner, self.v_max_inner, -self.v_max_inner) + self.target_VE*np.cos(self.psi) - self.target_VN*np.sin(self.psi)
                 ibvs_command_msg.F = self.saturate(self.ibvs_F_inner, self.w_max_inner, -self.w_max_inner)
                 ibvs_command_msg.z = self.ibvs_z_inner
                 ibvs_command_msg.mode = Command.MODE_XVEL_YVEL_YAWRATE_ALTITUDE
@@ -684,8 +688,8 @@ class StateMachine():
             elif flag == 'outer':
 
                 ibvs_command_msg = Command()
-                ibvs_command_msg.x = self.saturate(self.ibvs_x, self.u_max, -self.u_max)
-                ibvs_command_msg.y = self.saturate(self.ibvs_y, self.v_max, -self.v_max)
+                ibvs_command_msg.x = self.saturate(self.ibvs_x, self.u_max, -self.u_max) + self.target_VN*np.cos(self.psi) + self.target_VE*np.sin(self.psi)
+                ibvs_command_msg.y = self.saturate(self.ibvs_y, self.v_max, -self.v_max) + self.target_VE*np.cos(self.psi) - self.target_VN*np.sin(self.psi)
                 ibvs_command_msg.F = self.saturate(self.ibvs_F, self.w_max, -self.w_max)
                 ibvs_command_msg.z = self.ibvs_z
                 ibvs_command_msg.mode = Command.MODE_XVEL_YVEL_YAWRATE_ALTITUDE
@@ -965,6 +969,13 @@ class StateMachine():
         # update our attitude queues
         self.phi_queue.appendleft(self.phi)
         self.theta_queue.appendleft(self.theta)
+
+
+    def target_velocity_callback(self, msg):
+
+        # Pull of the target velocity data
+        self.target_VN = msg.x
+        self.target_VE = msg.y
 
 
     def update_wp_error(self):
