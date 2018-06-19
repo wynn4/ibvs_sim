@@ -57,12 +57,12 @@ class TestThrottle(object):
 
     def cycle(self, event):
 
-        print self.thrust_val
+        # Increment.
+        self.thrust_val = self.thrust_val + 0.1
 
+        # Reset.
         if self.thrust_val == 1.0:
             self.thrust_val = 0.0
-        else:
-            self.thrust_val = self.thrust_val + 0.1
 
 
 
