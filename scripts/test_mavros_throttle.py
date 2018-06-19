@@ -64,7 +64,7 @@ class TestThrottle(object):
     #     self.command_pub.publish(waypoint_command_msg)
 
 
-    def send_commands(self):
+    def send_commands(self, event):
 
         command_msg = AttitudeTarget()
         command_msg.header.stamp = rospy.get_rostime()
