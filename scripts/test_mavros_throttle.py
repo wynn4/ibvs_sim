@@ -63,7 +63,7 @@ class TestThrottle(object):
         print self.thrust_val
 
         # Reset.
-        if self.thrust_val == 1.0:
+        if self.thrust_val >= 1.0:
             print "Reset."
             self.thrust_val = 0.0
 
