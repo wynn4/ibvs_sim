@@ -21,7 +21,7 @@
     <arg name="v_max_inner" value="0.2" />
     <arg name="w_max_inner" value="0.2" />
 
-    <arg name="rendezvous_height" value="15.0" />
+    <arg name="rendezvous_height" value="13.1" />
     <arg name="wp_threshold" value="1.0" />
 
     <arg name="landing_distance_threshold" value="0.1" />
@@ -31,7 +31,16 @@
     <arg name="lambda_vx" value="0.5" />
     <arg name="lambda_vy" value="0.5" />
     <arg name="lambda_vz" value="0.7" />
-    <arg name="lambda_wz" value="0.5" />
+    <arg name="lambda_wz" value="0.4" />
+
+    <!-- IBVS Control Gains (Inner) -->
+    <arg name="square_root_dist_inner" value="true" />
+    <arg name="adaptive_inner" value="false" />
+
+    <arg name="lambda_vx_inner" value="0.5" />
+    <arg name="lambda_vy_inner" value="0.5" />
+    <arg name="lambda_vz_inner" value="0.7" />
+    <arg name="lambda_wz_inner" value="0.4" />
 
     <!-- rosbag args -->
     <arg name="record_rosbag" default="false" />
@@ -109,10 +118,13 @@
     <!-- IBVS Inner -->
     <node name="ibvs_inner" pkg="ibvs_sim" type="ibvs_adaptive.py" output="screen">
 
-        <param name="lambda_vx" value="$(arg lambda_vx)"/>
-        <param name="lambda_vy" value="$(arg lambda_vy)"/>
-        <param name="lambda_vz" value="$(arg lambda_vz)"/>
-        <param name="lambda_wz" value="$(arg lambda_wz)"/>
+        <param name="adaptive" value="$(arg adaptive_inner)"/>
+        <param name="square_root_dist" value="$(arg square_root_dist_inner)"/>
+
+        <param name="lambda_vx" value="$(arg lambda_vx_inner)"/>
+        <param name="lambda_vy" value="$(arg lambda_vy_inner)"/>
+        <param name="lambda_vz" value="$(arg lambda_vz_inner)"/>
+        <param name="lambda_wz" value="$(arg lambda_wz_inner)"/>
 
         <remap from="/ibvs/pdes" to="/ibvs/pdes_inner"/>
         <remap from="/aruco/marker_corners" to="/aruco/marker_corners_inner"/>
@@ -133,9 +145,9 @@
 
         <param name ="mode" value="mavros" />
 
-    	<param name="u_max" value="$(arg u_max_outer)" />
-    	<param name="v_max" value="$(arg v_max_outer)" />
-    	<param name="w_max" value="$(arg w_max_outer)" />
+        <param name="u_max" value="$(arg u_max_outer)" />
+        <param name="v_max" value="$(arg v_max_outer)" />
+        <param name="w_max" value="$(arg w_max_outer)" />
 
         <param name="u_max_inner" value="$(arg u_max_inner)" />
         <param name="v_max_inner" value="$(arg v_max_inner)" />
@@ -146,6 +158,8 @@
 
         <param name="landing_distance_threshold" value="$(arg landing_distance_threshold)" />
         <param name="p_des_error_outer_threshold" value="$(arg p_des_error_outer_threshold)" />
+        <param name="p_des_error_inner_threshold" value="$(arg p_des_error_inner_threshold)" />
+        <param name="inner_error_condition" value="$(arg inner_error_condition)" />
 
         <param name="test_name" value="$(arg test_name)" />
 
@@ -228,7 +242,7 @@
     <!--  -->
 
     <group if="$(arg record_rosbag)">
-        <node name="record" pkg="rosbag" type="record" args="/mavros/local_position/pose /mavros/local_position/odom /mavros_ned/estimate /aruco/marker_corners_outer /aruco/marker_corners_inner /camera_info /aruco/image/compressed /aruco/estimate /aruco/distance_inner /aruco/heading_outer -o $(arg test_name)" />
+        <node name="record" pkg="rosbag" type="record" args="/mavros/local_position/pose /mavros/local_position/odom /mavros/local_position/velocity /mavros_ned/estimate /mavros_ned/euler /aruco/marker_corners_outer /aruco/marker_corners_inner /camera_info /aruco/image/compressed /aruco/estimate /aruco/distance_inner /aruco/distance_outer /aruco/heading_outer /quadcopter/high_level_command /mavros/setpoint_raw/local /quadcopter/attitude_avg /quadcopter/ibvs_active /status_flag /ibvs_status_flag /ibvs/vel_cmd /ibvs_inner/vel_cmd /aruco/orientation_inner /ibvs/ibvs_error_outer /ibvs/ibvs_error_inner /target_position /target_ekf/velocity /target_ekf/velocity_lpf /ins_ne_velocity /ins_lat_lon /gps -o $(arg test_name)" />
     </group>
 
 
