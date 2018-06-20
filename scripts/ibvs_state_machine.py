@@ -346,7 +346,7 @@ class StateMachine():
 
                 # Update average roll and pitch angles after the yaw manuver (rotate about z-axis by relative heading)
                 psi = self.relative_heading
-                R = np.array([[np.cos(psi), -np.sin(psi)],[np.sin(psi), np.cos(psi)]])
+                R = np.array([[np.cos(psi), -np.sin(psi)],[np.sin(psi), np.cos(psi)]]).T
                 roll_pitch = np.dot(R, np.array([[self.roll_avg],[self.pitch_avg]]))
                 self.roll_avg = roll_pitch[0][0]
                 self.pitch_avg = roll_pitch[1][0]
