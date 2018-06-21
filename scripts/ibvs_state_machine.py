@@ -609,9 +609,9 @@ class StateMachine():
 
         self.thrust_val = start_thrust
 
-        # We want the ramp down to take place in 0.5 seconds
-        ramp_time = 0.5
-        decrement = start_thrust / 10.0
+        # We want the ramp down to take place in 1.0 seconds
+        ramp_time = 1.0
+        decrement = (start_thrust - 0.2) / 10.0
 
         for x in range(0, 10):
 
@@ -626,6 +626,7 @@ class StateMachine():
             rospy.sleep(ramp_time / 10.0)
 
         # Disarm Here
+        rospy.sleep(0.5)
         rospy.wait_for_service('/mavros/cmd/arming')
         try:
             success = self.arm_srv(value=False)
