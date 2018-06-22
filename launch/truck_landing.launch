@@ -204,7 +204,7 @@
         <param name="id_outer" value="148" />
         <param name="id_inner" value="65" />
 
-        <param name="draw_data" value="false" />
+        <param name="draw_data" value="true" />
 
         <param name="shrink_image" value="true" />
 
