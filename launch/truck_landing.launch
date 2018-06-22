@@ -24,10 +24,10 @@
     <arg name="rendezvous_height" value="12.1" />
     <arg name="wp_threshold" value="1.0" />
 
-    <arg name="landing_distance_threshold" value="0.4" />
+    <arg name="landing_distance_threshold" value="0.45" />
     <arg name="p_des_error_outer_threshold" value="50.0" />
     <arg name="p_des_error_inner_threshold" value="80.0" />
-    <arg name="inner_error_condition" value="True" />
+    <arg name="inner_error_condition" value="False" />
 
     <!-- IBVS Control Gains -->
     <arg name="lambda_vx" value="0.5" />
