@@ -36,7 +36,7 @@
   <node name="ins_gps_pub" pkg="ibvs_sim" type="ins_velocity_pub.py" output="screen"/>
 
   <group if="$(arg record_rosbag)">
-      <node name="record" pkg="rosbag" type="record" args="/gps /ins /ins_lat_lon /ins_ne_velocity -o $(arg test_name)" />
+      <node name="record_odroid" pkg="rosbag" type="record" args="/gps /ins /ins_lat_lon /ins_ne_velocity -o $(arg test_name)" />
   </group>
   
 </launch>
