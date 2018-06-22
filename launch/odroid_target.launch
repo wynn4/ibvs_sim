@@ -1,4 +1,9 @@
 <launch>
+
+  <!-- args -->
+  <arg name="test_name" />
+  <arg name="record_rosbag" default="false" />
+
 	<rosparam subst_value="True">
 
     inertial_sense_node: { port: "/dev/ttyUSB0",
@@ -29,5 +34,9 @@
 
   <!-- Velocity and Lat/Lon Publisher -->
   <node name="ins_gps_pub" pkg="ibvs_sim" type="ins_velocity_pub.py" output="screen"/>
+
+  <group if="$(arg record_rosbag)">
+      <node name="record" pkg="rosbag" type="record" args="/gps /ins /ins_lat_lon /ins_ne_velocity -o $(arg test_name)" />
+  </group>
   
 </launch>

@@ -135,10 +135,12 @@ class TargetEKF(object):
         self.dt = 0.0
         self.ready_to_propigate = False
 
+        self.position_msg = Point32()
         self.velocity_msg = Point32()
         self.velocity_lpf_msg = Point32()
 
         # Publisher for Estimate data
+        self.position_estimate_pub = rospy.Publisher('/target_ekf/position', Point32, queue_size=1)
         self.velocity_estimate_pub = rospy.Publisher('/target_ekf/velocity', Point32, queue_size=1)
         self.velocity_lpf_estimate_pub = rospy.Publisher('/target_ekf/velocity_lpf', Point32, queue_size=1)
 
@@ -329,7 +331,10 @@ class TargetEKF(object):
 
     def publish_estimate(self):
 
-        # Fill out the raw estimate message.
+        # Fill out the raw estimate messages.
+        self.position_msg.x = self.x_hat[0][0]
+        self.position_msg.y = self.x_hat[1][0]
+
         self.velocity_msg.x = self.x_hat[2][0]
         self.velocity_msg.y = self.x_hat[3][0]
 
@@ -342,9 +347,8 @@ class TargetEKF(object):
         self.velocity_lpf_msg.x = self.VN_lpf
         self.velocity_lpf_msg.y = self.VE_lpf
 
-
-
         # Publish.
+        self.position_estimate_pub.publish(self.position_msg)
         self.velocity_estimate_pub.publish(self.velocity_msg)
         self.velocity_lpf_estimate_pub.publish(self.velocity_lpf_msg)
 
