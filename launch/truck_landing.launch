@@ -39,9 +39,9 @@
     <arg name="square_root_dist_inner" value="true" />
     <arg name="adaptive_inner" value="false" />
 
-    <arg name="lambda_vx_inner" value="0.65" />
-    <arg name="lambda_vy_inner" value="0.65" />
-    <arg name="lambda_vz_inner" value="0.7" />
+    <arg name="lambda_vx_inner" value="0.7" />
+    <arg name="lambda_vy_inner" value="0.7" />
+    <arg name="lambda_vz_inner" value="0.8" />
     <arg name="lambda_wz_inner" value="0.4" />
 
     <!-- Target EKF Measurement Uncertainty -->
