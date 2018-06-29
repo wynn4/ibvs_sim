@@ -25,7 +25,7 @@
     <arg name="wp_threshold" value="1.0" />
 
     <arg name="landing_distance_threshold" value="0.40" />
-    <arg name="p_des_error_outer_threshold" value="50.0" />
+    <arg name="p_des_error_outer_threshold" value="60.0" />
     <arg name="p_des_error_inner_threshold" value="100.0" />
     <arg name="inner_error_condition" value="True" />
 
@@ -223,7 +223,7 @@
 
 
     <!--  -->
-    <!-- Point Grey Camera -->
+    <!-- Point Grey Camera Night-->
     <!--  -->
 
     <node name="pointgrey_camera" pkg="pointgrey_camera_driver" type="camera_node">
@@ -231,10 +231,15 @@
         <param name="camera_info_url" if="$(arg calibrated)"
             value="file://$(find aruco_localization)/camera_info/llnl_chameleon_resized_962x720.yaml" />
         <param name="frame_rate" value="$(arg frame_rate)" />
-        <param name="auto_shutter" value="true" />
-        <!-- <param name="shutter_speed" value="0.03" /> -->
+        <param name="auto_exposure" value="false" />
+        <param name="exposure" value="-1.4" />
+        <param name="auto_shutter" value="false" />
+        <param name="shutter_speed" value="0.01" />
+        <param name="auto_gain" value="false" />
+        <param name="gain" value="10.0" />
+        <param name="gamma" value="2.0" />
         <param name="format7_color_coding" value="mono8" />
-        <param name="auto_white_balance" value="true" />
+        <param name="auto_white_balance" value="false" />
     </node>
 
 
