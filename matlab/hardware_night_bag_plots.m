@@ -29,10 +29,10 @@ pd = mdata(5515:end,4);
 t = t - t(1);
 
 % Events (starting the bag at -s 93.5)
-% 28.5 s: Enter IBVS mode
-% 45.6 s: Switch to Inner Marker
-% 50.2 s: Land mode engaged
-% 50.9 s: Touchdown
+% 29.0 s: Enter IBVS mode
+% 46.1 s: Switch to Inner Marker
+% 50.7 s: Land mode engaged
+% 51.4 s: Touchdown
 time_shift = 0.0;
 t_ibvs = 29.0 + time_shift;
 t_switch = 46.1 + time_shift;
@@ -185,6 +185,39 @@ grid on
 pn(1)
 pe(1)
 pd(1)
+
+
+%
+% Attitude Figs
+%
+
+
+% load euler angle data which came from same bag as above
+load('euler_data_night.mat')
+
+% pull off the data
+t = euler_data(5423:end,1);
+phi = euler_data(5423:end,2);
+theta = euler_data(5423:end,3);
+psi = euler_data(5423:end,4);
+
+
+% fix time offset
+t = t - t(1);
+
+% figure(1), clf
+figure('Units', 'inches', ...
+       'Position', [0 0 plot_width plot_height], ...
+       'PaperPositionMode', 'auto')
+   
+subplot(3,1,1)
+plot(t, phi)
+subplot(3,1,2)
+plot(t, theta)
+subplot(3,1,3)
+plot(t, psi)
+
+
 
 %EXPORT FIGURE
 % -Select the figure window you want to export
