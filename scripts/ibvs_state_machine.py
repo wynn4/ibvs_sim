@@ -107,12 +107,12 @@ class StateMachine():
 
         self.relative_heading = 0.0
 
-        self.wind_calc_completed = False
+        self.wind_calc_completed = rospy.get_param('~wind_calc_completed', False)
         self.wind_window_seconds = 5
         self.wind_calc_duration = 10.0
         self.wind_offset = np.zeros((3,1), dtype=np.float32)
 
-        self.heading_correction_completed = False
+        self.heading_correction_completed = rospy.get_param('~heading_correction_completed', False)
 
         # Initialize queues
         if self.mode_flag == 'mavros':

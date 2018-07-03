@@ -22,16 +22,17 @@
     <arg name="w_max_inner" value="0.3" />
 
     <arg name="rendezvous_height" value="13.1" />
-    <arg name="wp_threshold" value="0.5" />
+    <arg name="wp_threshold" value="0.2" />
 
     <arg name="landing_distance_threshold" value="0.4" />
     <arg name="p_des_error_outer_threshold" value="50.0" />
-    <arg name="p_des_error_inner_threshold" value="50.0" />
+    <arg name="p_des_error_inner_threshold" value="60.0" />
+    <arg name="inner_error_condition" value="True" />
 
     <!-- IBVS Control Gains (Outer) -->
-    <arg name="lambda_vx_outer" value="0.75" />
-    <arg name="lambda_vy_outer" value="0.75" />
-    <arg name="lambda_vz_outer" value="1.0" />
+    <arg name="lambda_vx_outer" value="0.5" />
+    <arg name="lambda_vy_outer" value="0.5" />
+    <arg name="lambda_vz_outer" value="0.7" />
     <arg name="lambda_wz_outer" value="0.4" />
 
     <!-- IBVS Control Gains (Inner) -->
@@ -160,6 +161,11 @@
         <param name="landing_distance_threshold" value="$(arg landing_distance_threshold)" />
         <param name="p_des_error_outer_threshold" value="$(arg p_des_error_outer_threshold)" />
         <param name="p_des_error_inner_threshold" value="$(arg p_des_error_inner_threshold)" />
+        <param name="inner_error_condition" value="$(arg inner_error_condition)" />
+
+        <!-- Skip wind and heading corrections -->
+        <param name="wind_calc_completed" value="True" />
+        <param name="heading_correction_completed" value="True" />
 
         <param name="test_name" value="$(arg test_name)" />
 
@@ -247,7 +253,7 @@
     <!--  -->
 
     <group if="$(arg record_rosbag)">
-        <node name="record" pkg="rosbag" type="record" args="/mavros/local_position/pose /mavros/local_position/odom /mavros_ned/estimate /mavros_ned/euler /aruco/marker_corners_outer /aruco/marker_corners_inner /camera_info /aruco/image/compressed /aruco/estimate /aruco/distance_inner /aruco/distance_outer /aruco/heading_outer /quadcopter/high_level_command /mavros/setpoint_raw/local /quadcopter/attitude_avg /quadcopter/ibvs_active /status_flag /ibvs_status_flag /ibvs/vel_cmd /ibvs_inner/vel_cmd /aruco/orientation_inner /ibvs/ibvs_error_outer /ibvs/ibvs_error_inner /target_position -o $(arg test_name)" />
+        <node name="record" pkg="rosbag" type="record" args="/mavros/local_position/pose /mavros/local_position/odom /mavros/local_position/velocity /mavros_ned/estimate /mavros_ned/euler /aruco/marker_corners_outer /aruco/marker_corners_inner /camera_info /aruco/image/compressed /aruco/estimate /aruco/distance_inner /aruco/distance_outer /aruco/heading_outer /quadcopter/high_level_command /mavros/setpoint_raw/local /mavros/setpoint_raw/attitude /mavros/state /mavros/global_position/global /quadcopter/attitude_avg /quadcopter/ibvs_active /status_flag /ibvs_status_flag /ibvs/vel_cmd /ibvs_inner/vel_cmd /aruco/orientation_inner /ibvs/ibvs_error_outer /ibvs/ibvs_error_inner /target_position /target_ekf/position /target_ekf/velocity /target_ekf/velocity_lpf /ins_ne_velocity /ins_lat_lon /gps /rosout_agg -o $(arg test_name)" />
     </group>
 
 
