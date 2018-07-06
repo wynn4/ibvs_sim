@@ -12,7 +12,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Point
 from geometry_msgs.msg import Point32
-from geometry_msgs.msg import Quaternion
+from geometry_msgs.msg import PoseStamped
 from rosflight_msgs.msg import Command
 from mavros_msgs.msg import PositionTarget
 from mavros_msgs.msg import AttitudeTarget
@@ -217,7 +217,7 @@ class StateMachine():
         self.ibvs_sub = rospy.Subscriber('/ibvs/vel_cmd', Twist, self.ibvs_velocity_cmd_callback, queue_size=1)
         self.ibvs_inner_sub = rospy.Subscriber('/ibvs_inner/vel_cmd', Twist, self.ibvs_velocity_cmd_inner_callback, queue_size=1)
         self.aruco_sub = rospy.Subscriber('/aruco/distance_inner', Float32, self.aruco_inner_distance_callback)
-        self.aruco_att_sub = rospy.Subscriber('/aruco/orientation_inner', Quaternion, self.aruco_att_callback)
+        self.aruco_att_sub = rospy.Subscriber('/aruco/estimate', PoseStamped, self.aruco_att_callback)
         self.aruco_heading_sub = rospy.Subscriber('/aruco/heading_outer', Float32, self.aruco_relative_heading_callback)
         self.state_sub = rospy.Subscriber('estimate', Odometry, self.state_callback)
         self.ibvs_ave_error_sub = rospy.Subscriber('/ibvs/ibvs_error_outer', Float32, self.ibvs_ave_error_callback)
@@ -626,7 +626,7 @@ class StateMachine():
             rospy.sleep(ramp_time / 10.0)
 
         # Disarm Here
-        rospy.sleep(0.5)
+        rospy.sleep(0.05)
         rospy.wait_for_service('/mavros/cmd/arming')
         try:
             success = self.arm_srv(value=False)
@@ -912,7 +912,7 @@ class StateMachine():
 
     def aruco_att_callback(self, msg):
 
-        self.R_aruco = self.get_R_from_quaternion(msg.w, msg.x, msg.y, msg.z)
+        self.R_aruco = self.get_R_from_quaternion(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z)
 
         vec = np.dot(self.R_aruco, np.array([[0], [0], [-1]]))
 
@@ -921,7 +921,7 @@ class StateMachine():
 
         # The ArUco frame is out of alignment with the camera frame by 180 degrees
         angle = np.pi - angle
-        # print(np.degrees(angle))
+        print(np.degrees(angle))
 
         if self.inner_error_condition:
             if angle <= self.max_boat_angle and self.p_des_error_inner <= self.p_des_error_inner_threshold:
