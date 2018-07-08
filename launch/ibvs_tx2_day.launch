@@ -24,9 +24,9 @@
     <arg name="rendezvous_height" value="13.1" />
     <arg name="wp_threshold" value="0.2" />
 
-    <arg name="landing_distance_threshold" value="0.4" />
+    <arg name="landing_distance_threshold" value="0.42" />
     <arg name="p_des_error_outer_threshold" value="50.0" />
-    <arg name="p_des_error_inner_threshold" value="60.0" />
+    <arg name="p_des_error_inner_threshold" value="80.0" />
     <arg name="inner_error_condition" value="True" />
 
     <!-- IBVS Control Gains (Outer) -->
