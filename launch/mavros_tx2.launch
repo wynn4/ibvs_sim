@@ -6,6 +6,10 @@
     <!--  -->
     <!-- ARGS -->
     <!--  -->
+
+    <!-- rosbag args -->
+    <arg name="record_rosbag" default="false" />
+    <arg name="test_name" default="mavros_data" />
 	
     
     <!--  -->
@@ -37,6 +41,15 @@
 
     <!-- Node to convert mavros data to NED estimate data -->
 	<node name="mavros_ned" pkg="ibvs_sim" type="mavros_ned" output="screen" />
+
+
+	<!--  -->
+	<!-- ROSBAG RECORD -->
+	<!--  -->
+
+	<group if="$(arg record_rosbag)">
+        <node name="record" pkg="rosbag" type="record" args="/mavros/state /mavros/global_position/global /mavros/local_position/pose /mavros/local_position/odom /mavros/local_position/velocity /mavros_ned/estimate /mavros_ned/euler /rosout_agg -o $(arg test_name)" />
+    </group>
 
 
 </launch>
