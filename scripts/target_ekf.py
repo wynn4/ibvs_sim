@@ -98,11 +98,11 @@ class TargetEKF(object):
         # Covariance Matrix
         self.P = np.diag([1.e10, 1.e10, 1.e10, 1.e10])
 
-        # Model Uncertainty
-        self.Q = np.diag([1.e0, 1.e0, 1.e0])
+        # Model Input Uncertainty
+        self.Q = np.diag([1.e0, 1.e0])
 
         # Gamma(T)
-        self.Gamma = np.zeros((4,3), dtype=np.float32)
+        self.Gamma = np.zeros((4,2), dtype=np.float32)
         
         # Kalman gain.
         self.K = np.zeros((4,2), dtype=np.float32)
