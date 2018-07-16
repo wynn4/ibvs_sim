@@ -21,6 +21,7 @@ from mavros_msgs.srv import CommandBool
 import numpy as np
 import tf
 from collections import deque
+from scipy.optimize import fsolve
 
 
 
@@ -113,6 +114,8 @@ class StateMachine():
         self.wind_offset = np.zeros((3,1), dtype=np.float32)
 
         self.heading_correction_completed = rospy.get_param('~heading_correction_completed', False)
+
+        self.z_unit = np.zeros((3,1))
 
         # Initialize queues
         if self.mode_flag == 'mavros':
@@ -331,8 +334,8 @@ class StateMachine():
                 self.wind_calc_completed = True
                 self.status_flag = 'RENDEZVOUS'
                 self.prev_status = 'WIND_CALIBRATION'
-                print "Average roll angle: %f \nAverage pitch angle: %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg))
-                self.write_ave_att_file(self.roll_avg, self.pitch_avg)
+                print "Average roll angle (pre-hc): %f \nAverage pitch angle  (pre-hc): %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg))
+                # self.write_ave_att_file(self.roll_avg, self.pitch_avg)
 
         
         # HEADING CORRECTION MODE
@@ -344,12 +347,27 @@ class StateMachine():
                 while des_heading < np.radians(-180.0):  des_heading = des_heading + np.radians(360.0)
                 self.heading_command = des_heading
 
-                # Update average roll and pitch angles after the yaw manuver (rotate about z-axis by relative heading)
-                psi = self.relative_heading
-                R = np.array([[np.cos(psi), -np.sin(psi)],[np.sin(psi), np.cos(psi)]]).T
-                roll_pitch = np.dot(R, np.array([[self.roll_avg],[self.pitch_avg]]))
-                self.roll_avg = roll_pitch[0][0]
-                self.pitch_avg = roll_pitch[1][0]
+                # Pre-evaluate sines and cosines.
+                sphi = np.sin(self.roll_avg)
+                cphi = np.cos(self.roll_avg)
+
+                stheta = np.sin(self.pitch_avg)
+                ctheta = np.cos(self.pitch_avg)
+
+                spsi = np.sin(self.psi)
+                cpsi = np.cos(self.psi)
+
+                # The z-axis unit vector resulting from the average euler angles.
+                self.z_unit[0][0] = cphi*stheta*cpsi + sphi*spsi
+                self.z_unit[1][0] = cphi*stheta*spsi - sphi*cpsi
+                self.z_unit[2][0] = cphi*ctheta 
+
+                # Update average roll and pitch angles after the yaw manuver
+                x = fsolve(self.find_remaped_euler, np.zeros(3), (des_heading))
+                self.roll_avg = x[0]
+                self.pitch_avg = x[1]
+                self.write_ave_att_file(self.roll_avg, self.pitch_avg)
+                print "Average roll angle (post-hc): %f \nAverage pitch angle  (post-hc): %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg))
 
                 # print "Average roll angle: %f \nAverage pitch angle: %f" % (np.degrees(self.roll_avg), np.degrees(self.pitch_avg))
 
@@ -1021,6 +1039,34 @@ class StateMachine():
         return np.array([[1. - 2.*yy - 2.*zz, 2.*xy + 2.*wz, 2.*xz - 2.*wy],
                          [2.*xy - 2.*wz, 1. - 2.*xx - 2.*zz, 2.*yz + 2.*wx],
                          [2.*xz + 2.*wy, 2.*yz - 2.*wx, 1. - 2.*xx - 2.*yy]])
+
+
+    def find_remaped_euler(self, euler_angles, psi_des):
+
+        # Euler angles passed in
+        phi = euler_angles[0]
+        theta = euler_angles[1]
+        psi = psi_des
+
+        # Pre-evaluate sines and cosines
+        sphi = np.sin(phi)
+        cphi = np.cos(phi)
+
+        stheta = np.sin(theta)
+        ctheta = np.cos(theta)
+
+        spsi = np.sin(psi)
+        cpsi = np.cos(psi)
+
+        vec = np.array([[cphi*stheta*cpsi + sphi*spsi],
+                        [cphi*stheta*spsi - sphi*cpsi],
+                        [cphi*ctheta]])
+
+        F = vec - self.z_unit
+
+        F = F.flatten()
+
+        return F
 
 
     def write_ave_att_file(self, roll_ave, pitch_ave):
