@@ -108,6 +108,7 @@ Author: James Jackson
     <!-- Note becuase the camera is on its own link poiting straight down, the camera
     yaw now corresponds to the copter's roll. pitch is still fine. roll is now the
     copter's yaw. camera x = copter down. y = copter left. z = copter forward. -->
+    <!-- The XYZ offsets are based off of the quadrotor frame in FRONT-LEFT-UP -->
     <origin xyz="0.0 0.0 0.0" rpy="0.0 1.57079633 0.0"/>
   </xacro:simple_camera>
 
