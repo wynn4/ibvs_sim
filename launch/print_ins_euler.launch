@@ -1,0 +1,23 @@
+<launch>
+  
+  <!-- ARGS -->
+  <arg name="test_name" default="t7o_euler" />
+  <arg name="degrees" default="false" />
+  <arg name="topic_str" default="/ins" />
+
+
+   <!-- rosbag in -->
+  <node pkg="rosbag" type="play" name="player" output="screen" args="--clock /home/jesse/Desktop/rosbags/june_27/odroid_bags/t7o_2018-06-27-09-11-37.bag"/>
+
+  <!-- Euler Printer -->
+  <node name="euler_angle_printer" pkg="ibvs_sim" type="print_euler_angles.py" output="screen">
+
+    <param name="is_in_degrees" value="$(arg degrees)" />
+    <param name="topic_string" value="$(arg topic_str)" />
+
+  </node>
+
+  <!-- rosbag out -->
+  <node name="record_odroid" pkg="rosbag" type="record" args="/gps /ins /ins_lat_lon /ins_ne_velocity /print_euler -o $(arg test_name)" />
+
+</launch>

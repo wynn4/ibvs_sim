@@ -6,6 +6,7 @@
 
 import rospy
 from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Vector3Stamped
 import numpy as np
 import tf
 
@@ -23,6 +24,11 @@ class PrintEuler(object):
 
         self.degrees = rospy.get_param('~is_in_degrees', True)
         self.topic_str = rospy.get_param('~topic_string', '/mavros_ned/estimate')
+
+        self.euler_msg = Vector3Stamped()
+
+        # Initialize publisher
+        self.euler_pub = rospy.Publisher('/print_euler', Vector3Stamped, queue_size=1)
 
         # Initialize subscriber
         self.state_sub = rospy.Subscriber(self.topic_str, Odometry, self.state_callback)
@@ -44,6 +50,15 @@ class PrintEuler(object):
         self.phi = euler[0]
         self.theta = euler[1]
         self.psi = euler[2]
+
+        self.euler_msg.header.stamp = msg.header.stamp
+        self.euler_msg.vector.x = self.phi
+        self.euler_msg.vector.y = self.theta
+        self.euler_msg.vector.z = self.psi
+
+        self.euler_pub.publish(self.euler_msg)
+
+
 
         if self.degrees:
             print "Euler Angles (degrees):"
