@@ -130,6 +130,7 @@
     <param name="debug_save_output_frames" value="false" />
     <param name="debug_image_path" value="/tmp/arucoimages" />
 
+    <!-- Camera Offset from center of body frame w.r.t body frame -->
     <param name="camera_offset_x" value="0.0" />
     <param name="camera_offset_y" value="0.0" />
     <param name="camera_offset_z" value="0.0" />
