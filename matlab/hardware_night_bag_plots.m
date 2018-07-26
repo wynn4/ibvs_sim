@@ -7,13 +7,16 @@ close all
 % ---------
 % Set Plot Width and FontSize
 plot_width = 3.0;
-aspect_ratio = 4/3; % 4:3 3:2
+aspect_ratio = 3/1; % 4:3 3:2 1:1
 % Titel and Label Font size
 font_size = 8.0;
 % Legend font size
 lfont_size = 8.0;
 plot_height = plot_width * (1/aspect_ratio);
-%
+% Plot Line Widths
+line_width = 1.1;
+event_line_width = 0.5;
+x_label_height = 0.17;
 
 % load copter's position data which came from the following rosbag:
 % ~/Desktop/rosbags/june_11/test1nightlanding_2018-06-11-20-05-45.bag
@@ -39,23 +42,24 @@ t_switch = 46.1 + time_shift;
 t_land = 50.7 + time_shift;
 t_landed = 51.4 + time_shift;
 
+t_end = 60.0;
+
 % figure(1), clf
 figure('Units', 'inches', ...
        'Position', [0 0 plot_width plot_height], ...
        'PaperPositionMode', 'auto')
 
-
-subplot(3,1,1)
-plot(t,pn)
+plot(t,pn,...
+    'LineWidth', line_width)
 hold on
 % plot IBVS line
-plot([t_ibvs; t_ibvs], [-100, 100], ':k')
+plot([t_ibvs; t_ibvs], [-100, 100], ':k', 'LineWidth', event_line_width)
 % plot switch to inner marker line
-plot([t_switch; t_switch], [-100, 100], '--k')
+plot([t_switch; t_switch], [-100, 100], '--k', 'LineWidth', event_line_width)
 % plot land mode line
-plot([t_land; t_land], [-100, 100], '-.k')
+plot([t_land; t_land], [-100, 100], '-.k', 'LineWidth', event_line_width)
 % plot touchdown line
-plot([t_landed; t_landed], [-100, 100], '-k')
+plot([t_landed; t_landed], [-100, 100], '-k', 'LineWidth', event_line_width)
 
 % title('Marker Detection Rate vs Distance from Marker',...
 %       'Interpreter', 'latex',...
@@ -69,7 +73,7 @@ plot([t_landed; t_landed], [-100, 100], '-k')
 %        'FontSize', font_size,...
 %        'FontName', 'Times')
    
-ylabel('$P_N (m)$',...
+ylabel('North (m)',...
        'Interpreter', 'latex',...
        'FontUnits', 'points',...
        'FontSize', font_size,...
@@ -87,20 +91,29 @@ ylabel('$P_N (m)$',...
 axis([0, 60, -5, 5])
 set(gca, ...
     'YTick', -5:5:5,...
-    'XTick', 0:10:60)
+    'XTick', 0:10:t_end,...
+    'FontSize', font_size,...
+    'FontName', 'Times')
 grid on
 
-subplot(3,1,2)
-plot(t,pe)
+
+
+% figure(1), clf
+figure('Units', 'inches', ...
+       'Position', [0 0 plot_width plot_height], ...
+       'PaperPositionMode', 'auto')
+
+plot(t,pe,...
+    'LineWidth', line_width)
 hold on
 % plot IBVS line
-plot([t_ibvs; t_ibvs], [-100, 100], ':k')
+plot([t_ibvs; t_ibvs], [-100, 100], ':k', 'LineWidth', event_line_width)
 % plot switch to inner marker line
-plot([t_switch; t_switch], [-100, 100], '--k')
+plot([t_switch; t_switch], [-100, 100], '--k', 'LineWidth', event_line_width)
 % plot land mode line
-plot([t_land; t_land], [-100, 100], '-.k')
+plot([t_land; t_land], [-100, 100], '-.k', 'LineWidth', event_line_width)
 % plot touchdown line
-plot([t_landed; t_landed], [-100, 100], '-k')
+plot([t_landed; t_landed], [-100, 100], '-k', 'LineWidth', event_line_width)
 
 % title('Marker Detection Rate vs Distance from Marker',...
 %       'Interpreter', 'latex',...
@@ -114,7 +127,7 @@ plot([t_landed; t_landed], [-100, 100], '-k')
 %        'FontSize', font_size,...
 %        'FontName', 'Times')
    
-ylabel('$P_E (m)$',...
+ylabel('East (m)',...
        'Interpreter', 'latex',...
        'FontUnits', 'points',...
        'FontSize', font_size,...
@@ -132,11 +145,18 @@ ylabel('$P_E (m)$',...
 axis([0, 60, -13, 0])
 set(gca, ...
     'YTick', -10:5:0,...
-    'XTick', 0:10:60)
+    'XTick', 0:10:t_end,...
+    'FontSize', font_size,...
+    'FontName', 'Times')
 grid on
 
-subplot(3,1,3)
-plot(t,pd)
+
+% figure(1), clf
+figure('Units', 'inches', ...
+       'Position', [0 0 plot_width plot_height+x_label_height], ...
+       'PaperPositionMode', 'auto')
+plot(t,pd,...
+    'LineWidth', line_width)
 hold on
 % plot IBVS line
 plot([t_ibvs; t_ibvs], [-100, 100], ':k')
@@ -159,7 +179,7 @@ xlabel('Time (s)',...
        'FontSize', font_size,...
        'FontName', 'Times')
    
-ylabel('$P_D (m)$',...
+ylabel('Down (m)',...
        'Interpreter', 'latex',...
        'FontUnits', 'points',...
        'FontSize', font_size,...
@@ -177,7 +197,9 @@ ylabel('$P_D (m)$',...
 axis([0, 60, -15, 1])
 set(gca, ...
     'YTick', -15:5:0,...
-    'XTick', 0:10:60)
+    'XTick', 0:10:t_end,...
+    'FontSize', font_size,...
+    'FontName', 'Times')
 grid on
 
 
@@ -206,16 +228,16 @@ psi = euler_data(5423:end,4);
 t = t - t(1);
 
 % figure(1), clf
-figure('Units', 'inches', ...
-       'Position', [0 0 plot_width plot_height], ...
-       'PaperPositionMode', 'auto')
+% figure('Units', 'inches', ...
+%        'Position', [0 0 plot_width plot_height], ...
+%        'PaperPositionMode', 'auto')
    
-subplot(3,1,1)
-plot(t, phi)
-subplot(3,1,2)
-plot(t, theta)
-subplot(3,1,3)
-plot(t, psi)
+% subplot(3,1,1)
+% plot(t, phi)
+% subplot(3,1,2)
+% plot(t, theta)
+% subplot(3,1,3)
+% plot(t, psi)
 
 
 

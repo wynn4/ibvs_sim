@@ -7,13 +7,16 @@ close all
 % ---------
 % Set Plot Width and FontSize
 plot_width = 3.0;
-aspect_ratio = 4/3; % 4:3 3:2
+aspect_ratio = 4/3; % 4:3 3:2 1:1
 % Titel and Label Font size
 font_size = 8.0;
 % Legend font size
-lfont_size = 8.0;
+lfont_size = 6.0;
 plot_height = plot_width * (1/aspect_ratio);
-%
+% Plot Line Widths
+line_width = 1.1;
+event_line_width = 0.5;
+x_label_height = 0.17;
 
 % load aruco distance data which came from the following rosbag:
 % ~/Desktop/rosbags/june_11/test1nightlanding_2018-06-11-20-05-45.bag
@@ -40,9 +43,9 @@ figure('Units', 'inches', ...
        'Position', [0 0 plot_width plot_height], ...
        'PaperPositionMode', 'auto')
    
-plot(t_outer, d_outer, '-b')
+plot(t_outer, d_outer, '--', 'LineWidth', line_width)
 hold on
-plot(t_inner, d_inner, '-.r', 'LineWidth', 1)
+plot(t_inner, d_inner, '-r', 'LineWidth', line_width)
 % title('Marker Detection Rate vs Distance from Marker',...
 %       'Interpreter', 'latex',...
 %       'FontUnits', 'points',...
@@ -73,7 +76,9 @@ legend({'Outer', 'Inner'},...
 axis([0, 60, 0, 16])
 set(gca, ...
     'YTick', 0:5:15,...
-    'XTick', 0:10:60)
+    'XTick', 0:10:60,...
+    'FontSize', font_size,...
+    'FontName', 'Times')
 grid on
 
 %EXPORT FIGURE

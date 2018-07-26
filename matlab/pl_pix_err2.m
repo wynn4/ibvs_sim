@@ -22,8 +22,8 @@ x_label_height = 0.17;
 t0 = 29.0;
 
 % Load mat files
-data_outer = load('~/Desktop/rosbags/june_11/test1nightlandingibvs_data_outer.mat');
-data_inner = load('~/Desktop/rosbags/june_11/test1nightlandingibvs_data_inner.mat');
+data_outer = load('~/Desktop/rosbags/july_7/pixel_data/pln10ibvs_data_outer.mat');
+data_inner = load('~/Desktop/rosbags/july_7/pixel_data/pln10ibvs_data_inner.mat');
 
 % Trim off all of the data before and after IBVS mode was active
 ar = data_outer.arr(:,32);
@@ -103,7 +103,7 @@ ylabel('Error Length (pixels)',...
 %        'Orientation', 'vertical',...
 %        'Box', 'on')
 
-axis([29, 50.7, 0, 230])
+axis([35, 60, 0, 250])
 set(gca, ...
     'YTick', 0:50:200,...
     'XTick', 30:5:50,...
