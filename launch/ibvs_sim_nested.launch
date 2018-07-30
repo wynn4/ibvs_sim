@@ -163,8 +163,8 @@
 
   <!-- Wind Publisher -->
   <node name="wind_publisher" pkg="ibvs_sim" type="wind.py" output="screen">
-    <param name="wind_N" value="-0.0" />
-    <param name="wind_E" value="0.0" />
+    <param name="wind_N" value="-10" />
+    <param name="wind_E" value="10" />
   </node>
 
   <!-- Target Publisher -->

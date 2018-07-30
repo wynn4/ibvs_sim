@@ -9,8 +9,8 @@
     <arg name="test_name" />
 
     <!-- Target Location args -->
-    <!-- <arg name="tn" />
-    <arg name="te" /> -->
+    <arg name="bn" />
+    <arg name="be" />
 
     <!-- State Machine args -->
     <arg name="u_max_outer" value="0.5" />
@@ -253,6 +253,8 @@
     </node> -->
 
     <node name="target_ned_publisher" pkg="ibvs_sim" type="target_to_NED.py" output="screen">
+        <param name="bias_north" value="$(arg bn)" />
+        <param name="bias_east" value="$(arg be)" />
     </node>
 
 

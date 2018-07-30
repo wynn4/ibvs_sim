@@ -32,6 +32,10 @@ class TargetToNED(object):
         self.target_north = 0.0
         self.target_east = 0.0
 
+        # GPS biases
+        self.bias_north = rospy.get_param('~bias_north', 0.0)
+        self.bias_east = rospy.get_param('~bias_east', 0.0)
+
         self.target_msg = Odometry()
 
         # Initialize publishers
@@ -56,8 +60,8 @@ class TargetToNED(object):
 
         # Fill out the message.
         self.target_msg.header.stamp = rospy.Time.now()
-        self.target_msg.pose.pose.position.x = self.target_north
-        self.target_msg.pose.pose.position.y = self.target_east
+        self.target_msg.pose.pose.position.x = self.target_north - self.bias_north
+        self.target_msg.pose.pose.position.y = self.target_east - self.bias_east
 
         # Publish.
         if self.ready_to_publish:
