@@ -135,7 +135,8 @@ class StateMachine():
         # Rotation matrix to hold ArUco attitude data
         self.R_aruco = np.eye(3, dtype=np.float32)
 
-        self.max_boat_angle = np.radians(15.0)
+        # Max attitude angle between target and camera frame (degrees)
+        self.max_boat_angle = 15.0
 
         # Flag for wheter or not is is a good time to land
         self.safe_to_land = False
@@ -220,7 +221,8 @@ class StateMachine():
         self.ibvs_sub = rospy.Subscriber('/ibvs/vel_cmd', Twist, self.ibvs_velocity_cmd_callback, queue_size=1)
         self.ibvs_inner_sub = rospy.Subscriber('/ibvs_inner/vel_cmd', Twist, self.ibvs_velocity_cmd_inner_callback, queue_size=1)
         self.aruco_sub = rospy.Subscriber('/aruco/distance_inner', Float32, self.aruco_inner_distance_callback)
-        self.aruco_att_sub = rospy.Subscriber('/aruco/estimate', PoseStamped, self.aruco_att_callback)
+        # self.aruco_att_sub = rospy.Subscriber('/aruco/estimate', PoseStamped, self.aruco_att_callback)
+        self.aruco_angle_sub = rospy.Subscriber('/aruco/k_angle', Float32, self.aruco_angle_callback)
         self.aruco_heading_sub = rospy.Subscriber('/aruco/heading_outer', Float32, self.aruco_relative_heading_callback)
         self.state_sub = rospy.Subscriber('estimate', Odometry, self.state_callback)
         self.ibvs_ave_error_sub = rospy.Subscriber('/ibvs/ibvs_error_outer', Float32, self.ibvs_ave_error_callback)
@@ -928,21 +930,38 @@ class StateMachine():
         self.relative_heading = msg.data
         # print(self.distance)
 
-    def aruco_att_callback(self, msg):
+    # def aruco_att_callback(self, msg):
 
-        self.R_aruco = self.get_R_from_quaternion(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z)
+    #     self.R_aruco = self.get_R_from_quaternion(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z)
 
-        vec = np.dot(self.R_aruco, np.array([[0], [0], [-1]]))
+    #     vec = np.dot(self.R_aruco, np.array([[0], [0], [-1]]))
 
-        # Find the angle between vec and the inertial k-axis.
-        angle = np.arccos(np.dot(vec.T, np.array([[0], [0], [-1]])))
+    #     # Find the angle between vec and the inertial k-axis.
+    #     angle = np.arccos(np.dot(vec.T, np.array([[0], [0], [-1]])))
 
-        # The ArUco frame is out of alignment with the camera frame by 180 degrees
-        angle = np.pi - angle
-        # print(np.degrees(angle))
+    #     # The ArUco frame is out of alignment with the camera frame by 180 degrees
+    #     angle = np.pi - angle
+    #     print(np.degrees(angle))
+
+    #     if self.inner_error_condition:
+    #         if angle <= self.max_boat_angle and self.p_des_error_inner <= self.p_des_error_inner_threshold:
+    #             self.safe_to_land = True
+    #         else:
+    #             self.safe_to_land = False
+    #     else:
+    #         if angle <= self.max_boat_angle:
+    #             self.safe_to_land = True
+    #         else:
+    #             self.safe_to_land = False
+
+
+    def aruco_angle_callback(self, msg):
+
+        angle = msg.data
+        # print(angle)
 
         if self.inner_error_condition:
-            if angle <= self.max_boat_angle and self.p_des_error_inner <= self.p_des_error_inner_threshold:
+            if (angle <= self.max_boat_angle) and (self.p_des_error_inner <= self.p_des_error_inner_threshold):
                 self.safe_to_land = True
             else:
                 self.safe_to_land = False
