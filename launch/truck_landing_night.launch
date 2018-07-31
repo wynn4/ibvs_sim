@@ -22,7 +22,7 @@
     <arg name="w_max_inner" value="0.24" />
 
     <arg name="rendezvous_height" value="12.1" />
-    <arg name="wp_threshold" value="0.5" />
+    <arg name="wp_threshold" value="1.1" />
 
     <arg name="landing_distance_threshold" value="0.40" />
     <arg name="p_des_error_outer_threshold" value="60.0" />
