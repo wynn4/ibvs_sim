@@ -16,7 +16,12 @@ To run simulations, you will need to clone this repository into the `/src` folde
 You also need to install MAVROS: `sudo apt install ros-kinetic-mavros`
 
 
-## Landing on a Stationary Ground Target ##
+## Simulating Landing on a Stationary Ground Target ##
 
 To simulate a multirotor landing on a stationary ArUco marker:
 `roslaunch ibvs_sim ibvs_sim_nested.launch`
+
+## Simulating Landing on a Moving Barge ##
+
+To simulate landing a multirotor on a barge that is underway:
+`roslaunch ibvs_sim ibvs_sim_underway.launch`
