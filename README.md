@@ -17,4 +17,6 @@ You also need to install MAVROS: `sudo apt install ros-kinetic-mavros`
 
 
 ## Landing on a Stationary Ground Target ##
-To simulate a multirotor lan
+
+To simulate a multirotor landing on a stationary ArUco marker:
+`roslaunch ibvs_sim ibvs_sim_nested.launch`
