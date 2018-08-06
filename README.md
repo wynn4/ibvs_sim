@@ -13,6 +13,8 @@ To run simulations, you will need to clone this repository into the `/src` folde
 * [MAGICC SIM](https://github.com/byu-magicc/magicc_sim)
 * [ArUco Localization](https://github.com/wynn4/aruco_localization)
 
+You also need to install MAVROS: `sudo apt install ros-kinetic-mavros`
+
 
 ## Landing on a Stationary Ground Target ##
 To simulate a multirotor lan
