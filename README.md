@@ -14,6 +14,7 @@ To run simulations, you will need to clone this repository into the `/src` folde
 * [ArUco Localization](https://github.com/wynn4/aruco_localization)
 
 You also need to install MAVROS: `sudo apt install ros-kinetic-mavros`
+Don't forget to `catkin_make`
 
 
 ## Simulating Landing on a Stationary Ground Target ##
