@@ -24,7 +24,7 @@ To simulate a multirotor landing on a stationary ArUco marker:
 ## Simulating Landing on a Moving Barge ##
 
 To simulate landing a multirotor on a barge that is underway:
-`roslaunch ibvs_sim ibvs_sim_unde_rway.launch`
+`roslaunch ibvs_sim ibvs_sim_under_way.launch`
 
 ## Testing IBVS Precision Landings in Hardware ##
 
