@@ -16,9 +16,11 @@ To run simulations, you will need to clone this repository into the `/src` folde
 You also need to install MAVROS: `sudo apt install ros-kinetic-mavros`
 
 Before compiling, make sure to update the rosflight submodules:
-`cd rosflight
+```bash
+cd rosflight
 git submodule update --init --recursive
-cd ../..`
+cd ../..
+```
 Then run `catkin_make`
 
 Don't forget to source your workspace.
