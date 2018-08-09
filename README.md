@@ -7,11 +7,11 @@ This package contains source files needed to simulate multirotor precision landi
 
 To run simulations, you will need to clone this repository into the `/src` folder of your catkin workspace along with the following additional packages:
 
-* [ROScopter](https://github.com/byu-magicc/roscopter/commits/master)
-* [ROSflight](https://github.com/rosflight/rosflight)
-* [ROSflight Plugins](https://github.com/byu-magicc/rosflight_plugins)
-* [MAGICC SIM](https://github.com/byu-magicc/magicc_sim)
-* [ArUco Localization](https://github.com/wynn4/aruco_localization)
+* [ROScopter](https://github.com/byu-magicc/roscopter) branch master
+* [ROSflight](https://github.com/rosflight/rosflight) branch master
+* [ROSflight Plugins](https://github.com/byu-magicc/rosflight_plugins) branch master
+* [MAGICC SIM](https://github.com/byu-magicc/magicc_sim) branch master
+* [ArUco Localization](https://github.com/wynn4/aruco_localization) branch master
 
 You also need to install MAVROS: `sudo apt install ros-kinetic-mavros`
 Don't forget to `catkin_make`
