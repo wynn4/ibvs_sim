@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<launch>
+	<!-- Launch file for PX4 and IBVS -->
+	<!-- JSW May 2018 -->
+
+    <!--  -->
+    <!-- ARGS -->
+    <!--  -->
+
+    <!-- rosbag args -->
+    <arg name="record_rosbag" default="false" />
+    <arg name="test_name" default="mavros_data" />
+	
+    
+    <!--  -->
+    <!-- PX4 -->
+    <!--  -->
+
+    <!-- Launch PX4 pixhawk (taken from mavros px4.launch) -->
+	<arg name="fcu_url" default="/dev/ttyACM0:57600" />
+	<arg name="gcs_url" default="" />
+	<arg name="tgt_system" default="1" />
+	<arg name="tgt_component" default="1" />
+	<arg name="log_output" default="screen" />
+
+	<include file="$(find mavros)/launch/node.launch">
+	    <arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml" />
+		<arg name="config_yaml" value="$(find mavros)/launch/px4_config.yaml" />
+
+		<arg name="fcu_url" value="$(arg fcu_url)" />
+		<arg name="gcs_url" value="$(arg gcs_url)" />
+		<arg name="tgt_system" value="$(arg tgt_system)" />
+		<arg name="tgt_component" value="$(arg tgt_component)" />
+		<arg name="log_output" value="$(arg log_output)" />
+	</include>
+
+
+	<!--  -->
+    <!-- MAVROS NED -->
+    <!--  -->
+
+    <!-- Node to convert mavros data to NED estimate data -->
+	<node name="mavros_ned" pkg="ibvs_sim" type="mavros_ned" output="screen" />
+
+
+	<!--  -->
+	<!-- ROSBAG RECORD -->
+	<!--  -->
+
+	<group if="$(arg record_rosbag)">
+        <node name="record" pkg="rosbag" type="record" args="/mavros/state /mavros/global_position/global /mavros/local_position/pose /mavros/local_position/odom /mavros/local_position/velocity /mavros_ned/estimate /mavros_ned/euler /rosout_agg -o $(arg test_name)" />
+    </group>
+
+
+</launch>
