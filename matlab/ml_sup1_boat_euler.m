@@ -20,7 +20,7 @@ x_label_height = 0.17;
 
 % load velocity command data which came from the following rosbag:
 % ~/Desktop/rosbags/june_27/odroid_bags/t7o_euler_2018-07-19-15-27-47.bag
-load('ml_boat_euler.mat');
+load('ml_sup1_boat_euler.mat');
 
 % eye-balling the data here based off of video when the drone touched down.
 t = euler(4553:end,1);
@@ -34,16 +34,18 @@ heave = -lever_length * sin(pitch);
 % fix the time
 t = t - t(1);
 
-% Times when events took place starting the bag from t=66.0 seconds
-t_wind_cal_start = 5.43;
-t_wind_cal_stop = 15.43;
-t_heading_cor = 19.45;
-t_ibvs_outer = 23.5;
-t_ibvs_inner = 42.6;
-t_land_mode = 47.8;
-t_land = 48.5;
+t = t - 12.48;
 
-t_end = 50;
+% Times when events took place starting the bag from t=66.0 seconds
+t_wind_cal_start = 5.5;
+t_wind_cal_stop = 15.5;
+t_heading_cor = 15.7;
+t_ibvs_outer = 22.1;
+t_ibvs_inner = 52.1;
+t_land_mode = 72.1;
+t_land = 72.65;
+
+t_end = 75;
 
 figure('Units', 'inches', ...
        'Position', [0 0 plot_width plot_height], ...

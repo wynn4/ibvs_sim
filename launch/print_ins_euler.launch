@@ -7,7 +7,7 @@
 
 
    <!-- rosbag in -->
-  <node pkg="rosbag" type="play" name="player" output="screen" args="--clock /home/jesse/Desktop/rosbags/june_27/odroid_bags/t7o_2018-06-27-09-11-37.bag"/>
+  <node pkg="rosbag" type="play" name="player" output="screen" args="--clock /home/jesse/Desktop/rosbags/june_27/odroid_bags/t8o_2018-06-27-09-17-24.bag"/>
 
   <!-- Euler Printer -->
   <node name="euler_angle_printer" pkg="ibvs_sim" type="print_euler_angles.py" output="screen">
