@@ -20,35 +20,35 @@ event_line_width = 0.5;
 
 % load aruco distance data which came from the following rosbag:
 % ~/Desktop/rosbags/june_27/test7n_2018-06-27-03-09-07.bag
-load('sup1_aruco_dist_data.mat');
+load('sup3_aruco_dist_data.mat');
 
 t_outer = outer(:,1);
 d_outer = outer(:,2);
 
 t_outer = t_outer - t_outer(1);
 
-% first detection occurs 4.34 seconds after the auto mode is engaged at
+% first detection occurs 4.11 seconds after the auto mode is engaged at
 % 66.0 seconds into the rosbag
-t_outer = t_outer + 4.34;
+t_outer = t_outer + 3.33;
 
-t_inner = inner(1:end-3,1);
-d_inner = inner(1:end-3,2);
+t_inner = inner(1:end-18,1);
+d_inner = inner(1:end-18,2);
 t_inner = t_inner - t_inner(1);
 
 % first inner detection occurs 45.0 seconds after the auto mode is engaged at
 % 66.0 seconds into the rosbag
-t_inner = t_inner + 45.0;
+t_inner = t_inner + 56.1;
 
 % Times when events took place starting the bag from t=66.0 seconds
-t_wind_cal_start = 5.5;
-t_wind_cal_stop = 15.5;
-t_heading_cor = 15.7;
-t_ibvs_outer = 22.1;
-t_ibvs_inner = 52.1;
-t_land_mode = 72.1;
-t_land = 72.65;
+t_wind_cal_start = 5.7;
+t_wind_cal_stop = 15.7;
+t_heading_cor = 21.7;
+t_ibvs_outer = 32.0;
+t_ibvs_inner = 59.65;
+t_land_mode = 67.1;
+t_land = 67.6;
 
-t_end = 75;
+t_end = 70;
 
 figure('Units', 'inches', ...
        'Position', [0 0 plot_width plot_height], ...
@@ -93,9 +93,9 @@ legend({'Outer', 'Inner'},...
        'Orientation', 'vertical',...
        'Box', 'on')
 
-axis([0, t_end, 0, 17])
+axis([0, t_end, 0, 20])
 set(gca, ...
-    'YTick', 0:5:15,...
+    'YTick', 0:5:20,...
     'XTick', 0:10:80,...
     'FontSize', font_size,...
     'FontName', 'Times')
